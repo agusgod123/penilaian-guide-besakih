@@ -1,8 +1,13 @@
 # Aplikasi Penilaian Guide Kawasan Besakih
 
 PWA **offline-first** untuk staff lapangan menilai guide pada tiga pos pemeriksaan
-(**ID-Card**, **Uniform**, **Etika**). Tanpa login, data tersimpan di perangkat, dan
+(**Uniform**, **ID-Card**, **Review**). Tanpa login, data tersimpan di perangkat, dan
 terkirim otomatis ke server begitu ada koneksi.
+
+Penilaian mengikuti cara tim selama ini: **Uniform** dan **ID-Card** bernilai
+**1 (sesuai)** atau **0 (tidak sesuai)**, sedangkan **Review** diisi angka
+(jumlah review, 0–20). Hasilnya otomatis dirangkum ke tab rekap bulanan
+berformat sama seperti berkas *NILAI REWARD* yang biasa dipakai.
 
 Dibangun sesuai `PRD_Guide_Evaluation_App.md`.
 
