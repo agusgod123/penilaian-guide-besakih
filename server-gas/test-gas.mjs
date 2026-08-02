@@ -118,6 +118,15 @@ cek('setup() aman dijalankan dua kali (tidak menggandakan)',
     header.join(' | '));
 }
 
+// Tab yang cuma berisi header (mis. penulisan sebelumnya terputus) harus diisi ulang
+{
+  const gs = doc.getSheetByName('Guides');
+  gs.data = [['guideId', 'guideName', 'kategori', 'regu', 'aktif']];
+  setup();
+  cek('setup() mengisi ulang tab Guides yang hanya berisi header',
+    gs.getLastRow() === JML_GUIDE + 1, `${gs.getLastRow() - 1} guide`);
+}
+
 const health = J(doGet({ parameter: { action: 'health' } }));
 cek('health membalas ok & total 0', health.ok === true && health.total === 0);
 

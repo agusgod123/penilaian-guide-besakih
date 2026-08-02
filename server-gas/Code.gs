@@ -366,7 +366,9 @@ function setup() {
   var headerSekarang = g.getLastRow() > 0
     ? g.getRange(1, 1, 1, HEADER_GUIDES.length).getValues()[0].join('|')
     : '';
-  if (g.getLastRow() === 0 || headerSekarang !== HEADER_GUIDES.join('|')) {
+  // getLastRow() < 2 berarti tab kosong atau hanya berisi header — daftar guide
+  // yang kosong sama saja dengan rusak, jadi ikut ditulis ulang.
+  if (g.getLastRow() < 2 || headerSekarang !== HEADER_GUIDES.join('|')) {
     resetGuides();
   }
 
