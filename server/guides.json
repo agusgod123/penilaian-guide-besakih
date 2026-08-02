@@ -1,0 +1,17 @@
+[
+  { "guideId": "G-001", "guideName": "I Wayan Suparta",      "lisensi": "HPI-BLI-1021", "aktif": true },
+  { "guideId": "G-002", "guideName": "Ni Made Ariani",        "lisensi": "HPI-BLI-1044", "aktif": true },
+  { "guideId": "G-003", "guideName": "I Ketut Sudarsana",     "lisensi": "HPI-BLI-1078", "aktif": true },
+  { "guideId": "G-004", "guideName": "Ni Nyoman Sriati",      "lisensi": "HPI-BLI-1090", "aktif": true },
+  { "guideId": "G-005", "guideName": "I Gede Putra Wijaya",   "lisensi": "HPI-BLI-1112", "aktif": true },
+  { "guideId": "G-006", "guideName": "Ni Luh Putu Ratnasari", "lisensi": "HPI-BLI-1133", "aktif": true },
+  { "guideId": "G-007", "guideName": "I Nyoman Astawa",       "lisensi": "HPI-BLI-1150", "aktif": true },
+  { "guideId": "G-008", "guideName": "I Komang Darmawan",     "lisensi": "HPI-BLI-1167", "aktif": true },
+  { "guideId": "G-009", "guideName": "Ni Kadek Widiasih",     "lisensi": "HPI-BLI-1189", "aktif": true },
+  { "guideId": "G-010", "guideName": "I Putu Agus Mahendra",  "lisensi": "HPI-BLI-1201", "aktif": true },
+  { "guideId": "G-011", "guideName": "Ni Wayan Sukerti",      "lisensi": "HPI-BLI-1223", "aktif": true },
+  { "guideId": "G-012", "guideName": "I Made Rai Sudana",     "lisensi": "HPI-BLI-1245", "aktif": true },
+  { "guideId": "G-013", "guideName": "Ni Putu Eka Yuliani",   "lisensi": "HPI-BLI-1260", "aktif": true },
+  { "guideId": "G-014", "guideName": "I Wayan Budiarta",      "lisensi": "HPI-BLI-1288", "aktif": true },
+  { "guideId": "G-015", "guideName": "I Ketut Merta Yasa",    "lisensi": "HPI-BLI-1299", "aktif": false }
+]
