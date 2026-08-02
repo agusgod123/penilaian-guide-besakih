@@ -114,7 +114,27 @@
       </div>
 
       <div class="field">
-        <label class="lbl" for="guideInput">2. Pilih Guide</label>
+        <span class="lbl">2. Pilih Guide</span>
+
+        <div class="duakolom">
+          <div>
+            <label class="sublbl" for="filterKategori">Kategori</label>
+            <select id="filterKategori" class="bigselect">
+              <option value="">Semua</option>
+              <option value="Asing">Asing</option>
+              <option value="Domestik">Domestik</option>
+            </select>
+          </div>
+          <div>
+            <label class="sublbl" for="filterRegu">Regu</label>
+            <select id="filterRegu" class="bigselect">
+              <option value="">Semua</option>
+              <option value="1">Regu 1</option>
+              <option value="2">Regu 2</option>
+            </select>
+          </div>
+        </div>
+
         <input id="guideInput" class="bigselect" list="guideList" placeholder="Ketik nama atau pilih…" required
                inputmode="search" aria-describedby="guideHelp">
         <datalist id="guideList"></datalist>
@@ -167,6 +187,12 @@
   <!-- ===================== DAFTAR GUIDE ===================== -->
   <section id="view-guides" class="view" hidden>
     <input id="guideSearch" class="bigselect" placeholder="🔍 Cari guide…" inputmode="search">
+    <div class="filterbar">
+      <button class="chip active" data-gfilter="">Semua</button>
+      <button class="chip" data-gfilter="Asing">Asing</button>
+      <button class="chip" data-gfilter="Domestik">Domestik</button>
+    </div>
+    <div id="guideTotal" class="help"></div>
     <div id="guideCards" class="cards"></div>
   </section>
 
