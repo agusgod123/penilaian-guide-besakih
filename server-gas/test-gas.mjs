@@ -19,7 +19,10 @@ const cek = (id, ok, catatan = '') => {
 
 /* ---------------- Tiruan Spreadsheet ---------------- */
 class FakeSheet {
-  constructor(nama) { this.nama = nama; this.data = []; this.frozen = 0; this.widths = {}; }
+  constructor(nama) {
+    this.nama = nama; this.data = []; this.frozen = 0; this.widths = {};
+    this.merges = []; this.frozenCols = 0;
+  }
   getLastRow() { return this.data.length; }
   getDataRange() { return this.getRange(1, 1, Math.max(this.data.length, 1), 20); }
   getRange(row, col, numRows = 1, numCols = 1) {
@@ -43,7 +46,7 @@ class FakeSheet {
       },
       setValue(v) { return this.setValues([[v]]); },
       setFormulas(values) { return this.setValues(values); },
-      merge() { return this; },
+      merge() { sh.merges.push({ row, col, numRows, numCols }); return this; },
       setFontWeight() { return this; }, setFontColor() { return this; },
       setBackground() { return this; }, setHorizontalAlignment() { return this; },
       setFontSize() { return this; },
@@ -53,7 +56,7 @@ class FakeSheet {
   setFrozenColumns(n) { this.frozenCols = n; }
   setColumnWidth(i, w) { this.widths[i] = w; }
   deleteRow(r) { this.data.splice(r - 1, 1); }
-  clear() { this.data = []; return this; }
+  clear() { this.data = []; this.merges = []; return this; }
   clearFormats() { return this; }
 }
 
@@ -273,6 +276,15 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
   // Guide yang tidak pernah dinilai tetap muncul (agar terlihat siapa yang kosong)
   cek('Seluruh anggota regu tercantum walau belum pernah dinilai',
     a1.getLastRow() - 4 > 50, `${a1.getLastRow() - 4} baris guide di regu A1`);
+
+  // Google menolak setFrozenColumns bila ada sel gabungan yang melintasi
+  // batas kolom beku. Judul baris 1 karena itu tidak boleh di-merge.
+  const bentrok = ['Rekap A1 2026-07', 'Rekap A2 2026-07', 'Rekap D1 2026-07', 'Rekap D2 2026-07']
+    .map(n => doc.getSheetByName(n))
+    .filter(s => s.frozenCols > 0 &&
+      s.merges.some(m => m.row === 1 && m.col <= s.frozenCols && m.col + m.numCols - 1 > s.frozenCols));
+  cek('Judul tidak di-merge melintasi kolom beku (jebakan setFrozenColumns)',
+    bentrok.length === 0, bentrok.length ? bentrok.map(s => s.nama).join(', ') : 'aman');
 
   const perPos = doc.getSheetByName('Rekap per Pos 2026-07');
   const headPos = perPos.getRange(2, 1, 1, 15).getValues()[0];

@@ -750,13 +750,15 @@ function bangunRekapRegu_(info, bulan, ringkasan, guides) {
   var jmlKolom = 1 + (tanggal.length + 1) * 3;   // nama + (tanggal + TOTAL) x 3
 
   // --- baris 1: judul ---
+  // Sengaja TIDAK di-merge: sel gabungan yang melintasi batas kolom beku
+  // membuat setFrozenColumns gagal ("can't freeze columns which contain only
+  // part of a merged cell"). Warna latar tetap dipasang di seluruh baris.
   sh.getRange(1, 1).setValue(
     'REKAP PENILAIAN GUIDE — ' + info.kategori.toUpperCase() +
     ' REGU ' + info.nomor + ' — ' + bulan);
-  sh.getRange(1, 1, 1, jmlKolom).merge()
+  sh.getRange(1, 1, 1, jmlKolom)
     .setFontWeight('bold').setFontSize(12)
-    .setFontColor('#FFFFFF').setBackground('#0B5D3B')
-    .setHorizontalAlignment('center');
+    .setFontColor('#FFFFFF').setBackground('#0B5D3B');
 
   // --- baris 2: tanggal ---
   sh.getRange(2, 1).setValue('REGU: ' + info.nomor + ' (' + info.kategori + ')')
@@ -845,9 +847,9 @@ function bangunRekapPerPos_(bulan, ringkasan, guides) {
   head.push('Total Dinilai');
 
   sh.getRange(1, 1).setValue('RINCIAN PER POS PEMERIKSAAN — ' + bulan);
-  sh.getRange(1, 1, 1, head.length).merge()
+  sh.getRange(1, 1, 1, head.length)
     .setFontWeight('bold').setFontSize(12)
-    .setFontColor('#FFFFFF').setBackground('#0B5D3B').setHorizontalAlignment('center');
+    .setFontColor('#FFFFFF').setBackground('#0B5D3B');
   sh.getRange(2, 1, 1, head.length).setValues([head])
     .setFontWeight('bold').setFontColor('#FFFFFF').setBackground('#0B5D3B')
     .setHorizontalAlignment('center');
