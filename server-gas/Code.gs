@@ -28,7 +28,7 @@ var SHEET_GUIDES  = 'Guides';
 var SHEET_INFO    = 'Petunjuk';
 
 var HEADER_EVAL   = ['evaluationId', 'timestamp', 'pos', 'guideId', 'guideName',
-                     'idCard', 'uniform', 'etika', 'catatan', 'receivedAt'];
+                     'uniform', 'idCard', 'review', 'catatan', 'receivedAt'];
 var HEADER_GUIDES = ['guideId', 'guideName', 'kategori', 'regu', 'aktif'];
 
 var GUIDES_AWAL = [
@@ -375,7 +375,9 @@ function setup() {
   // --- Tab Evaluations ---
   var e = ss.getSheetByName(SHEET_EVAL) || ss.insertSheet(SHEET_EVAL);
   if (e.getLastRow() === 0) {
-    pasangHeader_(e, HEADER_EVAL, [290, 190, 50, 90, 200, 80, 80, 80, 240, 190]);
+    pasangHeader_(e, HEADER_EVAL, [290, 190, 50, 90, 200, 80, 70, 70, 240, 190]);
+  } else {
+    migrasiEvaluations_(e);
   }
 
   // --- Tab Petunjuk ---
@@ -410,6 +412,46 @@ function setup() {
   });
 
   return 'Setup selesai. Lanjut ke Deploy → New deployment → Web app.';
+}
+
+/**
+ * Sesuaikan tab Evaluations lama ke skema terbaru.
+ *
+ * Versi awal memakai urutan  idCard | uniform | etika  dengan nilai TRUE/FALSE.
+ * Versi sekarang memakai      uniform | idCard | review dengan angka 1/0/n,
+ * mengikuti cara penilaian yang dipakai di lapangan selama ini.
+ * Nilai lama dipindahkan, tidak dihapus.
+ */
+function migrasiEvaluations_(e) {
+  var lebar = HEADER_EVAL.length;
+  var header = e.getRange(1, 1, 1, lebar).getValues()[0].map(function (x) {
+    return String(x || '').trim();
+  });
+  if (header.join('|') === HEADER_EVAL.join('|')) return false;   // sudah sesuai
+
+  var idxUniformLama = header.indexOf('uniform');
+  var idxIdLama = header.indexOf('idCard');
+  var idxEtika = header.indexOf('etika');
+  var baris = e.getLastRow() - 1;
+
+  if (baris > 0 && idxUniformLama > -1 && idxIdLama > -1) {
+    var data = e.getRange(2, 1, baris, lebar).getValues();
+    for (var i = 0; i < data.length; i++) {
+      var r = data[i];
+      var uniform = r[idxUniformLama] === true || Number(r[idxUniformLama]) === 1 ? 1 : 0;
+      var idCard = r[idxIdLama] === true || Number(r[idxIdLama]) === 1 ? 1 : 0;
+      var review = 0;
+      if (idxEtika > -1) review = (r[idxEtika] === true || Number(r[idxEtika]) === 1) ? 1 : 0;
+      r[5] = uniform;   // posisi baru: uniform
+      r[6] = idCard;    // posisi baru: idCard
+      r[7] = review;    // posisi baru: review
+    }
+    e.getRange(2, 1, data.length, lebar).setValues(data);
+  }
+
+  pasangHeader_(e, HEADER_EVAL, [290, 190, 50, 90, 200, 80, 70, 70, 240, 190]);
+  Logger.log('Tab Evaluations dimigrasikan ke skema uniform/idCard/review.');
+  return true;
 }
 
 /* ================= GET ================= */
@@ -509,9 +551,9 @@ function doPost(e) {
         Number(it.pos),
         String(it.guideId),
         String(it.guideName),
-        !!it.criteria.idCard,
-        !!it.criteria.uniform,
-        !!it.criteria.etika,
+        it.criteria.uniform ? 1 : 0,
+        it.criteria.idCard ? 1 : 0,
+        Math.max(0, Number(it.criteria.review) || 0),
         String(it.catatan || ''),
         new Date().toISOString()
       ]);
@@ -547,9 +589,11 @@ function validasi_(it) {
   if (!it.criteria || typeof it.criteria !== 'object') {
     errs.push('criteria wajib');
   } else {
-    ['idCard', 'uniform', 'etika'].forEach(function (k) {
+    ['idCard', 'uniform'].forEach(function (k) {
       if (typeof it.criteria[k] !== 'boolean') errs.push('criteria.' + k + ' harus boolean');
     });
+    var rv = Number(it.criteria.review);
+    if (!isFinite(rv) || rv < 0) errs.push('criteria.review harus angka >= 0');
   }
   return errs;
 }
@@ -572,6 +616,338 @@ function resetGuides() {
   return pesan;
 }
 
+/* ==================================================================
+   REKAP BULANAN — meniru format "NILAI REWARD" yang dipakai selama ini
+   ==================================================================
+   Satu tab per regu per bulan:
+     baris  = nama guide
+     kolom  = tanggal x (UNI FORM, ID, REVIEW), lalu blok TOTAL berumus
+
+   Penggabungan bila satu guide dinilai di beberapa pos pada hari sama:
+     UNI FORM & ID : diambil yang PALING BURUK (0 mengalahkan 1)
+     REVIEW        : diambil yang TERTINGGI, supaya review yang tercatat
+                     di salah satu pos tidak terhapus
+   Rincian per pos tetap bisa dilihat di tab "Rekap per Pos".
+   ================================================================== */
+
+var REGU_INFO = [
+  { kode: 'A1', kategori: 'Asing',    nomor: 1 },
+  { kode: 'A2', kategori: 'Asing',    nomor: 2 },
+  { kode: 'D1', kategori: 'Domestik', nomor: 1 },
+  { kode: 'D2', kategori: 'Domestik', nomor: 2 }
+];
+
+/** 'YYYY-MM' dari objek Date, memakai zona waktu spreadsheet. */
+function kodeBulan_(d) {
+  return Utilities.formatDate(d, ss_().getSpreadsheetTimeZone(), 'yyyy-MM');
+}
+
+/** 'YYYY-MM-DD' */
+function kodeTanggal_(d) {
+  return Utilities.formatDate(d, ss_().getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+}
+
+/** Ubah kolom regu ("A1, D1") menjadi array kode. */
+function pecahRegu_(teks) {
+  return String(teks || '').split(',').map(function (x) { return x.trim(); })
+    .filter(function (x) { return x; });
+}
+
+/** Baca tab Guides menjadi daftar objek. */
+function bacaGuides_() {
+  var rows = sheet_(SHEET_GUIDES).getDataRange().getValues().slice(1);
+  var out = [];
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (!r[0]) continue;
+    if (String(r[4]).toUpperCase() === 'FALSE') continue;
+    out.push({
+      guideId: String(r[0]).trim(),
+      guideName: String(r[1]).trim(),
+      kategori: String(r[2] || '').trim(),
+      regu: pecahRegu_(r[3])
+    });
+  }
+  return out;
+}
+
+/**
+ * Rangkum penilaian satu bulan.
+ * @return {{ harian: Object, perPos: Object, tanggal: Array }}
+ *   harian[guideId][tgl] = { uniform, idCard, review }   (sudah digabung)
+ *   perPos[guideId][pos] = { jml, uniform, idCard, review }
+ */
+function rangkumBulan_(bulan) {
+  var sh = sheet_(SHEET_EVAL);
+  var last = sh.getLastRow();
+  var harian = {}, perPos = {}, setTanggal = {};
+  if (last < 2) return { harian: harian, perPos: perPos, tanggal: [] };
+
+  var data = sh.getRange(2, 1, last - 1, HEADER_EVAL.length).getValues();
+  for (var i = 0; i < data.length; i++) {
+    var r = data[i];
+    var waktu = new Date(r[1]);
+    if (isNaN(waktu.getTime())) continue;
+    if (kodeBulan_(waktu) !== bulan) continue;
+
+    var tgl = kodeTanggal_(waktu);
+    var pos = Number(r[2]) || 0;
+    var gid = String(r[3]).trim();
+    var uniform = Number(r[5]) ? 1 : 0;
+    var idCard = Number(r[6]) ? 1 : 0;
+    var review = Math.max(0, Number(r[7]) || 0);
+
+    setTanggal[tgl] = true;
+
+    if (!harian[gid]) harian[gid] = {};
+    var sel = harian[gid][tgl];
+    if (!sel) {
+      harian[gid][tgl] = { uniform: uniform, idCard: idCard, review: review };
+    } else {
+      sel.uniform = Math.min(sel.uniform, uniform);   // paling buruk
+      sel.idCard = Math.min(sel.idCard, idCard);      // paling buruk
+      sel.review = Math.max(sel.review, review);      // jangan hilangkan review
+    }
+
+    if (!perPos[gid]) perPos[gid] = {};
+    var p = perPos[gid][pos];
+    if (!p) p = perPos[gid][pos] = { jml: 0, uniform: 0, idCard: 0, review: 0 };
+    p.jml++;
+    p.uniform += uniform;
+    p.idCard += idCard;
+    p.review += review;
+  }
+
+  var tanggal = Object.keys(setTanggal).sort();
+  return { harian: harian, perPos: perPos, tanggal: tanggal };
+}
+
+function namaTabRekap_(kode, bulan) { return 'Rekap ' + kode + ' ' + bulan; }
+
+/** Kosongkan tab bila sudah ada, atau buat baru. */
+function siapkanTab_(nama) {
+  var ss = ss_();
+  var sh = ss.getSheetByName(nama);
+  if (sh) { sh.clear(); sh.clearFormats(); }
+  else { sh = ss.insertSheet(nama); }
+  return sh;
+}
+
+/** Bangun satu tab rekap untuk satu regu. */
+function bangunRekapRegu_(info, bulan, ringkasan, guides) {
+  var anggota = guides.filter(function (g) { return g.regu.indexOf(info.kode) > -1; })
+    .sort(function (a, b) { return a.guideName.toLowerCase() < b.guideName.toLowerCase() ? -1 : 1; });
+
+  // Hanya tanggal yang benar-benar ada penilaian bagi anggota regu ini
+  var punya = {};
+  anggota.forEach(function (g) {
+    var h = ringkasan.harian[g.guideId];
+    if (h) Object.keys(h).forEach(function (t) { punya[t] = true; });
+  });
+  var tanggal = Object.keys(punya).sort();
+
+  var sh = siapkanTab_(namaTabRekap_(info.kode, bulan));
+  var jmlKolom = 1 + (tanggal.length + 1) * 3;   // nama + (tanggal + TOTAL) x 3
+
+  // --- baris 1: judul ---
+  sh.getRange(1, 1).setValue(
+    'REKAP PENILAIAN GUIDE — ' + info.kategori.toUpperCase() +
+    ' REGU ' + info.nomor + ' — ' + bulan);
+  sh.getRange(1, 1, 1, jmlKolom).merge()
+    .setFontWeight('bold').setFontSize(12)
+    .setFontColor('#FFFFFF').setBackground('#0B5D3B')
+    .setHorizontalAlignment('center');
+
+  // --- baris 2: tanggal ---
+  sh.getRange(2, 1).setValue('REGU: ' + info.nomor + ' (' + info.kategori + ')')
+    .setFontWeight('bold');
+  for (var i = 0; i < tanggal.length; i++) {
+    var kol = 2 + i * 3;
+    var bagian = tanggal[i].split('-');
+    sh.getRange(2, kol, 1, 3).merge()
+      .setValue('TGL: ' + Number(bagian[2]) + '-' + Number(bagian[1]) + '-' + bagian[0])
+      .setHorizontalAlignment('center').setFontWeight('bold');
+  }
+  var kolTotal = 2 + tanggal.length * 3;
+  sh.getRange(2, kolTotal, 1, 3).merge().setValue('TOTAL')
+    .setHorizontalAlignment('center').setFontWeight('bold')
+    .setBackground('#C8942B').setFontColor('#FFFFFF');
+
+  // --- baris 3: sub-header ---
+  var head = ['NAME'];
+  for (var t = 0; t <= tanggal.length; t++) head.push('UNI FORM', 'ID', 'REVIEW');
+  sh.getRange(3, 1, 1, head.length).setValues([head])
+    .setFontWeight('bold').setFontColor('#FFFFFF').setBackground('#0B5D3B')
+    .setHorizontalAlignment('center');
+
+  // --- baris 5 dst: data ---
+  if (anggota.length) {
+    var baris = [];
+    for (var a = 0; a < anggota.length; a++) {
+      var g = anggota[a];
+      var row = [g.guideName];
+      var h = ringkasan.harian[g.guideId] || {};
+      for (var d = 0; d < tanggal.length; d++) {
+        var sel = h[tanggal[d]];
+        if (sel) row.push(sel.uniform, sel.idCard, sel.review);
+        else row.push('', '', '');   // kosong = tidak bertugas / tidak diperiksa
+      }
+      row.push('', '', '');          // tempat rumus TOTAL
+      baris.push(row);
+    }
+    sh.getRange(5, 1, baris.length, head.length).setValues(baris);
+
+    // Rumus TOTAL per kriteria — tetap hidup bila sel diperbaiki manual
+    if (tanggal.length) {
+      var rumus = [];
+      for (var b = 0; b < anggota.length; b++) {
+        var nb = 5 + b;
+        var satu = [];
+        for (var k = 0; k < 3; k++) {
+          var sel2 = [];
+          for (var dd = 0; dd < tanggal.length; dd++) {
+            sel2.push(kolomHuruf_(2 + dd * 3 + k) + nb);
+          }
+          satu.push('=SUM(' + sel2.join(',') + ')');
+        }
+        rumus.push(satu);
+      }
+      sh.getRange(5, kolTotal, rumus.length, 3).setFormulas(rumus)
+        .setFontWeight('bold').setBackground('#FFF6E0');
+    }
+  }
+
+  sh.setFrozenRows(3);
+  sh.setFrozenColumns(1);
+  sh.setColumnWidth(1, 210);
+  for (var c = 2; c <= jmlKolom; c++) sh.setColumnWidth(c, 58);
+  return anggota.length;
+}
+
+/** Nomor kolom -> huruf (1 -> A, 27 -> AA). */
+function kolomHuruf_(n) {
+  var s = '';
+  while (n > 0) {
+    var sisa = (n - 1) % 26;
+    s = String.fromCharCode(65 + sisa) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+/** Tab rincian: capaian tiap guide dipisah per pos pemeriksaan. */
+function bangunRekapPerPos_(bulan, ringkasan, guides) {
+  var sh = siapkanTab_('Rekap per Pos ' + bulan);
+  var head = ['NAME', 'REGU'];
+  for (var p = 1; p <= 3; p++) {
+    head.push('P' + p + ' Dinilai', 'P' + p + ' Uniform', 'P' + p + ' ID', 'P' + p + ' Review');
+  }
+  head.push('Total Dinilai');
+
+  sh.getRange(1, 1).setValue('RINCIAN PER POS PEMERIKSAAN — ' + bulan);
+  sh.getRange(1, 1, 1, head.length).merge()
+    .setFontWeight('bold').setFontSize(12)
+    .setFontColor('#FFFFFF').setBackground('#0B5D3B').setHorizontalAlignment('center');
+  sh.getRange(2, 1, 1, head.length).setValues([head])
+    .setFontWeight('bold').setFontColor('#FFFFFF').setBackground('#0B5D3B')
+    .setHorizontalAlignment('center');
+
+  var baris = [];
+  for (var i = 0; i < guides.length; i++) {
+    var g = guides[i];
+    var pp = ringkasan.perPos[g.guideId];
+    if (!pp) continue;                       // hanya yang pernah dinilai bulan ini
+    var row = [g.guideName, g.regu.join(', ')];
+    var total = 0;
+    for (var pos = 1; pos <= 3; pos++) {
+      var d = pp[pos] || { jml: 0, uniform: 0, idCard: 0, review: 0 };
+      row.push(d.jml, d.uniform, d.idCard, d.review);
+      total += d.jml;
+    }
+    row.push(total);
+    baris.push(row);
+  }
+  if (baris.length) {
+    baris.sort(function (a, b) { return b[14] - a[14]; });   // paling sering dinilai di atas
+    sh.getRange(3, 1, baris.length, head.length).setValues(baris);
+  }
+  sh.setFrozenRows(2);
+  sh.setColumnWidth(1, 210);
+  sh.setColumnWidth(2, 90);
+  for (var c = 3; c <= head.length; c++) sh.setColumnWidth(c, 78);
+  return baris.length;
+}
+
+/**
+ * Susun ulang seluruh tab rekap untuk satu bulan.
+ * @param {string=} bulan 'YYYY-MM'. Kosong = bulan berjalan.
+ */
+function bangunRekap(bulan) {
+  bulan = bulan || kodeBulan_(new Date());
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(30000); } catch (e) { return 'Sedang dipakai proses lain, coba lagi.'; }
+
+  try {
+    var guides = bacaGuides_();
+    var ringkasan = rangkumBulan_(bulan);
+    var hasil = [];
+    for (var i = 0; i < REGU_INFO.length; i++) {
+      var n = bangunRekapRegu_(REGU_INFO[i], bulan, ringkasan, guides);
+      hasil.push(REGU_INFO[i].kode + ':' + n);
+    }
+    var nPos = bangunRekapPerPos_(bulan, ringkasan, guides);
+    SpreadsheetApp.flush();
+    var pesan = 'Rekap ' + bulan + ' selesai. ' + hasil.join(' ') +
+                ' | tanggal terisi: ' + ringkasan.tanggal.length +
+                ' | guide dinilai: ' + nPos;
+    Logger.log(pesan);
+    return pesan;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Dipanggil trigger harian. */
+function rekapHarian() {
+  bangunRekap();
+}
+
+/* ================= Menu & trigger ================= */
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('Penilaian Guide')
+    .addItem('Perbarui Rekap Bulan Ini', 'menuRekapSekarang')
+    .addItem('Perbarui Rekap Bulan Lalu', 'menuRekapBulanLalu')
+    .addSeparator()
+    .addItem('Pasang Pembaruan Otomatis Tiap Malam', 'pasangTriggerHarian')
+    .addToUi();
+}
+
+function menuRekapSekarang() {
+  SpreadsheetApp.getUi().alert(bangunRekap());
+}
+
+function menuRekapBulanLalu() {
+  var d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  SpreadsheetApp.getUi().alert(bangunRekap(kodeBulan_(d)));
+}
+
+/** Pasang trigger harian 23.00 (hanya sekali; yang lama dibuang dulu). */
+function pasangTriggerHarian() {
+  var lama = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < lama.length; i++) {
+    if (lama[i].getHandlerFunction() === 'rekapHarian') ScriptApp.deleteTrigger(lama[i]);
+  }
+  ScriptApp.newTrigger('rekapHarian').timeBased().atHour(23).everyDays(1).create();
+  var pesan = 'Pembaruan otomatis dipasang: setiap hari sekitar pukul 23.00.';
+  try { SpreadsheetApp.getUi().alert(pesan); } catch (e) {}
+  Logger.log(pesan);
+  return pesan;
+}
+
 /* ================= Uji mandiri (opsional) ================= */
 /**
  * Jalankan fungsi ini dari editor Apps Script untuk memastikan tulis-baca
@@ -585,18 +961,18 @@ function ujiCepat() {
     guideName: 'Gusti Alit Astawa',
     pos: 1,
     timestamp: new Date().toISOString(),
-    criteria: { idCard: true, uniform: false, etika: true },
+    criteria: { idCard: true, uniform: false, review: 2 },
     catatan: 'baris uji otomatis'
   }) } }).getContent());
 
   var ulang = JSON.parse(doPost({ postData: { contents: JSON.stringify({
     evaluationId: id, guideId: 'G-001', guideName: 'Gusti Alit Astawa', pos: 1,
     timestamp: new Date().toISOString(),
-    criteria: { idCard: true, uniform: false, etika: true }
+    criteria: { idCard: true, uniform: false, review: 2 }
   }) } }).getContent());
 
   var salah = JSON.parse(doPost({ postData: { contents: JSON.stringify({
-    guideId: 'G-002', pos: 9, criteria: { idCard: 'ya' }
+    guideId: 'G-002', pos: 9, criteria: { idCard: 'ya', review: -1 }
   }) } }).getContent());
 
   var guides = JSON.parse(doGet({ parameter: { action: 'guides' } }).getContent());

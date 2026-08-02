@@ -41,19 +41,25 @@ class FakeSheet {
         }
         return out;
       },
+      setValue(v) { return this.setValues([[v]]); },
+      setFormulas(values) { return this.setValues(values); },
+      merge() { return this; },
       setFontWeight() { return this; }, setFontColor() { return this; },
       setBackground() { return this; }, setHorizontalAlignment() { return this; },
       setFontSize() { return this; },
     };
   }
   setFrozenRows(n) { this.frozen = n; }
+  setFrozenColumns(n) { this.frozenCols = n; }
   setColumnWidth(i, w) { this.widths[i] = w; }
   deleteRow(r) { this.data.splice(r - 1, 1); }
   clear() { this.data = []; return this; }
+  clearFormats() { return this; }
 }
 
 class FakeSpreadsheet {
   constructor() { this.sheets = [new FakeSheet('Sheet1')]; }
+  getSpreadsheetTimeZone() { return 'Asia/Makassar'; }
   getSheetByName(n) { return this.sheets.find(s => s.nama === n) || null; }
   insertSheet(n) { const s = new FakeSheet(n); this.sheets.push(s); return s; }
   getSheets() { return this.sheets; }
@@ -65,7 +71,24 @@ let lockDipegang = false;
 let gagalKunci = false;
 
 const sandbox = {
-  SpreadsheetApp: { getActiveSpreadsheet: () => doc, flush() {} },
+  SpreadsheetApp: {
+    getActiveSpreadsheet: () => doc,
+    flush() {},
+    getSpreadsheetTimeZone: () => 'Asia/Makassar',
+    getUi: () => { throw new Error('tidak ada UI di lingkungan uji'); },
+  },
+  Utilities: {
+    formatDate(d, tz, pola) {
+      const p = n => String(n).padStart(2, '0');
+      if (pola === 'yyyy-MM') return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}`;
+      return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
+    },
+  },
+  ScriptApp: {
+    getProjectTriggers: () => [],
+    newTrigger: () => ({ timeBased: () => ({ atHour: () => ({ everyDays: () => ({ create() {} }) }) }) }),
+    deleteTrigger() {},
+  },
   ContentService: {
     MimeType: { JSON: 'json' },
     createTextOutput: (t) => ({ getContent: () => t, setMimeType() { return this; } }),
@@ -149,7 +172,7 @@ const post = (obj) => J(doPost({ postData: { contents: JSON.stringify(obj) } }))
 const contoh = (id, pos = 1) => ({
   evaluationId: id, guideId: 'G-001', guideName: 'Gusti Alit Astawa', pos,
   timestamp: new Date().toISOString(),
-  criteria: { idCard: true, uniform: false, etika: true }, catatan: 'uji',
+  criteria: { idCard: true, uniform: false, review: 2 }, catatan: 'uji',
 });
 
 let r = post(contoh('uuid-1'));
@@ -157,16 +180,16 @@ cek('POST menyimpan penilaian', r.accepted.length === 1 && r.accepted[0].synced 
 cek('Baris tersimpan di tab Evaluations', doc.getSheetByName('Evaluations').getLastRow() === 2);
 
 const baris = doc.getSheetByName('Evaluations').getRange(2, 1, 1, 10).getValues()[0];
-cek('Urutan kolom sesuai header',
+cek('Urutan kolom sesuai header (uniform, idCard, review)',
   baris[0] === 'uuid-1' && Number(baris[2]) === 1 && baris[3] === 'G-001' &&
-  baris[5] === true && baris[6] === false && baris[7] === true,
+  baris[5] === 0 && baris[6] === 1 && baris[7] === 2,
   JSON.stringify(baris.slice(0, 8)));
 
 r = post(contoh('uuid-1'));
 cek('Kirim ulang tidak menggandakan baris',
   r.accepted[0].duplicate === true && doc.getSheetByName('Evaluations').getLastRow() === 2);
 
-r = post({ guideId: 'G-002', pos: 9, criteria: { idCard: 'ya' } });
+r = post({ guideId: 'G-002', pos: 9, criteria: { idCard: 'ya', review: -1 } });
 cek('Data tidak sah ditolak dengan alasan jelas',
   r.accepted.length === 0 && r.rejected.length === 1 && r.rejected[0].errors.length >= 4,
   r.rejected[0].errors.slice(0, 3).join('; '));
@@ -194,6 +217,102 @@ cek('Kunci selalu dilepas kembali', lockDipegang === false);
 
 const totalAkhir = J(doGet({ parameter: { action: 'health' } })).total;
 cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${totalAkhir}`);
+
+/* ---------------- Rekap bulanan ---------------- */
+{
+  const ev = doc.getSheetByName('Evaluations');
+  ev.data = [ev.data[0]];                       // sisakan header saja
+
+  const T = (hari, jam) => `2026-07-${String(hari).padStart(2, '0')}T${jam}:00:00.000Z`;
+  const buat = (id, gid, nama, pos, hari, uniform, idCard, review) =>
+    ev.data.push([id, T(hari, '02'), pos, gid, nama, uniform, idCard, review, '', T(hari, '02')]);
+
+  // G-001 (Asing A1) tanggal 3: pos 1 bagus, pos 3 buruk -> harus terambil yang buruk
+  buat('e1', 'G-001', 'Gusti Alit Astawa', 1, 3, 1, 1, 1);
+  buat('e2', 'G-001', 'Gusti Alit Astawa', 3, 3, 0, 0, 3);
+  // G-001 tanggal 5: sekali saja
+  buat('e3', 'G-001', 'Gusti Alit Astawa', 2, 5, 1, 1, 0);
+  // G-005 (Domestik D2) tanggal 4
+  buat('e4', 'G-005', 'I Gede Darta', 1, 4, 0, 1, 2);
+  // bulan lain — tidak boleh ikut
+  ev.data.push(['e9', '2026-06-10T02:00:00.000Z', 1, 'G-001', 'Gusti Alit Astawa', 1, 1, 9, '', '']);
+
+  const pesan = sandbox.bangunRekap('2026-07');
+  cek('bangunRekap() menghasilkan 4 tab regu + 1 tab per pos',
+    ['Rekap A1 2026-07', 'Rekap A2 2026-07', 'Rekap D1 2026-07', 'Rekap D2 2026-07',
+     'Rekap per Pos 2026-07'].every(n => doc.getSheetByName(n)), pesan);
+
+  const a1 = doc.getSheetByName('Rekap A1 2026-07');
+  const head3 = a1.getRange(3, 1, 1, 10).getValues()[0];
+  cek('Header rekap memakai istilah lama (NAME / UNI FORM / ID / REVIEW)',
+    head3[0] === 'NAME' && head3[1] === 'UNI FORM' && head3[2] === 'ID' && head3[3] === 'REVIEW',
+    head3.slice(0, 4).join(' | '));
+
+  // G-001 ada di baris 5 (nama paling awal secara abjad di regu A1)
+  const barisG1 = a1.getRange(5, 1, 1, 12).getValues()[0];
+  cek('Nilai harian mengambil yang paling buruk antar pos',
+    barisG1[0] === 'Gusti Alit Astawa' && barisG1[1] === 0 && barisG1[2] === 0,
+    `uniform=${barisG1[1]} id=${barisG1[2]} (pos 1 bernilai 1/1, pos 3 bernilai 0/0)`);
+  cek('Review mengambil nilai tertinggi antar pos, tidak terhapus',
+    barisG1[3] === 3, `review=${barisG1[3]}`);
+
+  cek('Tanggal tanpa penilaian dibiarkan kosong',
+    barisG1[4] === 1 && barisG1[5] === 1 && barisG1[6] === 0,
+    'tanggal 5: uniform=1 id=1 review=0');
+
+  const kolTotal = 1 + 2 * 3 + 1;               // 2 tanggal -> TOTAL mulai kolom 8
+  const rumus = a1.getRange(5, kolTotal, 1, 3).getValues()[0];
+  cek('Kolom TOTAL berisi rumus SUM yang tetap hidup',
+    String(rumus[0]).indexOf('=SUM(') === 0 && String(rumus[0]).indexOf('B5') > -1,
+    String(rumus[0]));
+
+  cek('Penilaian bulan lain tidak ikut terhitung',
+    a1.getRange(2, 1, 1, 12).getValues()[0].filter(v => String(v).indexOf('TGL') === 0).length === 2,
+    'hanya 2 tanggal di Juli');
+
+  // Guide yang tidak pernah dinilai tetap muncul (agar terlihat siapa yang kosong)
+  cek('Seluruh anggota regu tercantum walau belum pernah dinilai',
+    a1.getLastRow() - 4 > 50, `${a1.getLastRow() - 4} baris guide di regu A1`);
+
+  const perPos = doc.getSheetByName('Rekap per Pos 2026-07');
+  const headPos = perPos.getRange(2, 1, 1, 15).getValues()[0];
+  cek('Tab per pos memisahkan Pos 1, 2, dan 3',
+    headPos[2] === 'P1 Dinilai' && headPos[6] === 'P2 Dinilai' && headPos[10] === 'P3 Dinilai',
+    headPos.slice(2, 4).join(' | '));
+
+  const barisPos = perPos.getRange(3, 1, 2, 15).getValues();
+  const g1pos = barisPos.find(b => b[0] === 'Gusti Alit Astawa');
+  cek('Rincian per pos mencatat jumlah penilaian tiap pos',
+    g1pos && g1pos[2] === 1 && g1pos[6] === 1 && g1pos[10] === 1 && g1pos[14] === 3,
+    g1pos ? `P1=${g1pos[2]} P2=${g1pos[6]} P3=${g1pos[10]} total=${g1pos[14]}` : 'tidak ketemu');
+
+  // Jalankan dua kali — tidak boleh menggandakan tab atau baris
+  const jmlTabSebelum = doc.getSheets().length;
+  sandbox.bangunRekap('2026-07');
+  cek('bangunRekap() aman diulang (tab ditulis ulang, tidak bertambah)',
+    doc.getSheets().length === jmlTabSebelum &&
+    doc.getSheetByName('Rekap A1 2026-07').getRange(5, 1, 1, 1).getValues()[0][0] === 'Gusti Alit Astawa');
+
+  ev.data = [ev.data[0]];                       // bersihkan lagi untuk uji berikutnya
+}
+
+/* ---------------- Migrasi skema lama ---------------- */
+{
+  const ev = doc.getSheetByName('Evaluations');
+  ev.data = [
+    ['evaluationId', 'timestamp', 'pos', 'guideId', 'guideName', 'idCard', 'uniform', 'etika', 'catatan', 'receivedAt'],
+    ['lama-1', '2026-06-01T02:00:00.000Z', 1, 'G-001', 'Gusti Alit Astawa', true, false, true, 'catatan lama', ''],
+  ];
+  setup();
+  const h = ev.getRange(1, 1, 1, 10).getValues()[0];
+  const b = ev.getRange(2, 1, 1, 10).getValues()[0];
+  cek('Tab Evaluations skema lama dimigrasikan',
+    h[5] === 'uniform' && h[6] === 'idCard' && h[7] === 'review', h.slice(5, 8).join(' | '));
+  cek('Nilai lama dipindahkan dengan benar (bukan dihapus)',
+    b[5] === 0 && b[6] === 1 && b[7] === 1 && b[8] === 'catatan lama',
+    `uniform=${b[5]} idCard=${b[6]} review=${b[7]}`);
+  ev.data = [ev.data[0]];
+}
 
 /* ---------------- resetGuides ---------------- */
 {
