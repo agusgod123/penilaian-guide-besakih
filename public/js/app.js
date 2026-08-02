@@ -421,7 +421,7 @@
   const TUT = [
     { i: '👋', t: 'Selamat Datang', b: 'Aplikasi ini untuk menilai guide di pos pemeriksaan Kawasan Besakih. Tidak perlu login.' },
     { i: '📝', t: 'Langkah 1 — Pilih', b: 'Tekan tombol hijau “Penilaian Baru”, lalu pilih pos dan nama guide.' },
-    { i: '✅', t: 'Langkah 2 — Nilai', b: 'Tekan Ya atau Tidak untuk ID‑Card, Uniform, dan Etika. Lalu tekan SIMPAN.' },
+    { i: '✅', t: 'Langkah 2 — Nilai', b: 'Tekan Ya atau Tidak untuk Uniform dan ID‑Card. Untuk Review, tekan − atau + sesuai jumlah review. Lalu tekan SIMPAN.' },
     { i: '📶', t: 'Langkah 3 — Tenang', b: 'Tanpa sinyal pun data tetap tersimpan. Saat Wi‑Fi menyala, data terkirim sendiri (⏳ menjadi ✅).' },
   ];
   let tutIndex = 0;
