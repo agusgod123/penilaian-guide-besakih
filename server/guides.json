@@ -1,17 +1,2074 @@
 [
-  { "guideId": "G-001", "guideName": "I Wayan Suparta",      "lisensi": "HPI-BLI-1021", "aktif": true },
-  { "guideId": "G-002", "guideName": "Ni Made Ariani",        "lisensi": "HPI-BLI-1044", "aktif": true },
-  { "guideId": "G-003", "guideName": "I Ketut Sudarsana",     "lisensi": "HPI-BLI-1078", "aktif": true },
-  { "guideId": "G-004", "guideName": "Ni Nyoman Sriati",      "lisensi": "HPI-BLI-1090", "aktif": true },
-  { "guideId": "G-005", "guideName": "I Gede Putra Wijaya",   "lisensi": "HPI-BLI-1112", "aktif": true },
-  { "guideId": "G-006", "guideName": "Ni Luh Putu Ratnasari", "lisensi": "HPI-BLI-1133", "aktif": true },
-  { "guideId": "G-007", "guideName": "I Nyoman Astawa",       "lisensi": "HPI-BLI-1150", "aktif": true },
-  { "guideId": "G-008", "guideName": "I Komang Darmawan",     "lisensi": "HPI-BLI-1167", "aktif": true },
-  { "guideId": "G-009", "guideName": "Ni Kadek Widiasih",     "lisensi": "HPI-BLI-1189", "aktif": true },
-  { "guideId": "G-010", "guideName": "I Putu Agus Mahendra",  "lisensi": "HPI-BLI-1201", "aktif": true },
-  { "guideId": "G-011", "guideName": "Ni Wayan Sukerti",      "lisensi": "HPI-BLI-1223", "aktif": true },
-  { "guideId": "G-012", "guideName": "I Made Rai Sudana",     "lisensi": "HPI-BLI-1245", "aktif": true },
-  { "guideId": "G-013", "guideName": "Ni Putu Eka Yuliani",   "lisensi": "HPI-BLI-1260", "aktif": true },
-  { "guideId": "G-014", "guideName": "I Wayan Budiarta",      "lisensi": "HPI-BLI-1288", "aktif": true },
-  { "guideId": "G-015", "guideName": "I Ketut Merta Yasa",    "lisensi": "HPI-BLI-1299", "aktif": false }
+  {
+    "guideId": "G-001",
+    "guideName": "Gusti Alit Astawa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-002",
+    "guideName": "I Gede Astawa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-003",
+    "guideName": "I Gede Budiarsana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-004",
+    "guideName": "I Gede Darmayasa",
+    "kategori": "Asing",
+    "regu": "A1, A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-005",
+    "guideName": "I Gede Darta",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-006",
+    "guideName": "I Gede Dauh",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-007",
+    "guideName": "I Gede Kariasa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-008",
+    "guideName": "I Gede Karya",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-009",
+    "guideName": "I Gede Karyawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-010",
+    "guideName": "I Gede Kastika",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-011",
+    "guideName": "I Gede Kutawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-012",
+    "guideName": "I Gede Pande Sudarta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-013",
+    "guideName": "I Gede Paruna",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-014",
+    "guideName": "I Gede Pondal",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-015",
+    "guideName": "I Gede Rsi",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-016",
+    "guideName": "I Gede Sudarma",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-017",
+    "guideName": "I Gede Sudiasa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-018",
+    "guideName": "I Gede Suweca",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-019",
+    "guideName": "I Gede Toni Ermawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-020",
+    "guideName": "I Gede Yuda Pratama",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-021",
+    "guideName": "I Gusti A Armawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-022",
+    "guideName": "I Gusti Bagus Arimbawa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-023",
+    "guideName": "I Gusti Bagus Asmara",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-024",
+    "guideName": "I Gusti Ketut Men",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-025",
+    "guideName": "I Gusti Ketut Putra",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-026",
+    "guideName": "I Gusti Lanang Andika",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-027",
+    "guideName": "I Gusti Lanang Oka",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-028",
+    "guideName": "I Gusti Ngurah Arpama",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-029",
+    "guideName": "I Gusti Ngurah Artanawa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-030",
+    "guideName": "I Gusti Ngurah Artawan",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-031",
+    "guideName": "I Gusti Ngurah Arya Utama",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-032",
+    "guideName": "I Gusti Ngurah Aryawan",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-033",
+    "guideName": "I Gusti Ngurah Bauguna",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-034",
+    "guideName": "I Gusti Ngurah Darmayasa",
+    "kategori": "Asing, Domestik",
+    "regu": "A1, D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-035",
+    "guideName": "I Gusti Ngurah Ema Putra",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-036",
+    "guideName": "I Gusti Ngurah Mantra",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-037",
+    "guideName": "I Gusti Ngurah Mariana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-038",
+    "guideName": "I Gusti Ngurah Marjaya",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-039",
+    "guideName": "I Gusti Ngurah Muliarta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-040",
+    "guideName": "I Gusti Ngurah Putra",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-041",
+    "guideName": "I Gusti Ngurah Putra Yata",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-042",
+    "guideName": "I Gusti Putu Wirawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-043",
+    "guideName": "I Kadek Adiarta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-044",
+    "guideName": "I Kadek Agus",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-045",
+    "guideName": "I Kadek Ardana",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-046",
+    "guideName": "I Kadek Ariawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-047",
+    "guideName": "I Kadek Budiasa",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-048",
+    "guideName": "I Kadek Ema Putra",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-049",
+    "guideName": "I Kadek Kariawan",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-050",
+    "guideName": "I Kadek Korya",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-051",
+    "guideName": "I Kadek Lanus",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-052",
+    "guideName": "I Kadek Murdiasa",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-053",
+    "guideName": "I Kadek Ngenu",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-054",
+    "guideName": "I Kadek Oden",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-055",
+    "guideName": "I Kadek Pageh",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-056",
+    "guideName": "I Kadek Pepek",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-057",
+    "guideName": "I Kadek Purna",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-058",
+    "guideName": "I Kadek Rudiarta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-059",
+    "guideName": "I Kadek Suartana",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-060",
+    "guideName": "I Kadek Sudarma",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-061",
+    "guideName": "I Kadek Sudarta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-062",
+    "guideName": "I Kadek Sudiarta",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-063",
+    "guideName": "I Kadek Wardana",
+    "kategori": "Asing, Domestik",
+    "regu": "A1, D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-064",
+    "guideName": "I Ketut Arnawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-065",
+    "guideName": "I Ketut Artana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-066",
+    "guideName": "I Ketut Artika",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-067",
+    "guideName": "I Ketut Astawa",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-068",
+    "guideName": "I Ketut Budiana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-069",
+    "guideName": "I Ketut Budiantara",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-070",
+    "guideName": "I Ketut Budiasta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-071",
+    "guideName": "I Ketut Budiawan",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-072",
+    "guideName": "I Ketut Dukut",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-073",
+    "guideName": "I Ketut Juliarta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-074",
+    "guideName": "I Ketut Kasih",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-075",
+    "guideName": "I Ketut Konten",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-076",
+    "guideName": "I Ketut Kusuma",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-077",
+    "guideName": "I Ketut Ngenu",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-078",
+    "guideName": "I Ketut Pariasa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-079",
+    "guideName": "I Ketut Pica",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-080",
+    "guideName": "I Ketut Rawi",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-081",
+    "guideName": "I Ketut Rawiana",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-082",
+    "guideName": "I Ketut Sadia",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-083",
+    "guideName": "I Ketut Sandiasa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-084",
+    "guideName": "I Ketut Setiawan",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-085",
+    "guideName": "I Ketut Suadnyana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-086",
+    "guideName": "I Ketut Suandika",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-087",
+    "guideName": "I Ketut Sudana",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-088",
+    "guideName": "I Ketut Sudi Artawan",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-089",
+    "guideName": "I Ketut Sugiarta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-090",
+    "guideName": "I Ketut Suji",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-091",
+    "guideName": "I Ketut Sutama",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-092",
+    "guideName": "I Ketut Sutama Yasa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-093",
+    "guideName": "I Ketut Sutarma",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-094",
+    "guideName": "I Ketut Uliantara",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-095",
+    "guideName": "I Ketut Wandri",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-096",
+    "guideName": "I Ketut Wardana",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-097",
+    "guideName": "I Ketut Wartawan",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-098",
+    "guideName": "I Ketut Watra",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-099",
+    "guideName": "I Ketut Widarta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-100",
+    "guideName": "I Ketut Widya",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-101",
+    "guideName": "I Ketut Wijanta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-102",
+    "guideName": "I Ketut Wirya",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-103",
+    "guideName": "I Komang Artawan",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-104",
+    "guideName": "I Komang Bayu",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-105",
+    "guideName": "I Komang Irvan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-106",
+    "guideName": "I Komang Kayun",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-107",
+    "guideName": "I Komang Rema",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-108",
+    "guideName": "I Komang Sudiarta",
+    "kategori": "Asing, Domestik",
+    "regu": "A1, D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-109",
+    "guideName": "I Komang Supardika",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-110",
+    "guideName": "I Komang Widana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-111",
+    "guideName": "I Komang Wiratawan",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-112",
+    "guideName": "I Made Astika",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-113",
+    "guideName": "I Made Pageh",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-114",
+    "guideName": "I Made Simpen",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-115",
+    "guideName": "I Made Suastika",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-116",
+    "guideName": "I Made Suwadnya",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-117",
+    "guideName": "I Made Tunas",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-118",
+    "guideName": "I Mangku Sudarta",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-119",
+    "guideName": "I Mangku Wayan Sama",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-120",
+    "guideName": "I Nengah Adi Purnawan",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-121",
+    "guideName": "I Nengah Ardana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-122",
+    "guideName": "I Nengah Artawan",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-123",
+    "guideName": "I Nengah Budayasa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-124",
+    "guideName": "I Nengah Dadi",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-125",
+    "guideName": "I Nengah Dana",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-126",
+    "guideName": "I Nengah Darma",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-127",
+    "guideName": "I Nengah Darmawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-128",
+    "guideName": "I Nengah Darmayasa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-129",
+    "guideName": "I Nengah Darmika",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-130",
+    "guideName": "I Nengah Diatmika",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-131",
+    "guideName": "I Nengah Gejer",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-132",
+    "guideName": "I Nengah Jemet",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-133",
+    "guideName": "I Nengah Juliarta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-134",
+    "guideName": "I Nengah Kariana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-135",
+    "guideName": "I Nengah Lebut",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-136",
+    "guideName": "I Nengah Madia",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-137",
+    "guideName": "I Nengah Marta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-138",
+    "guideName": "I Nengah Monas",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-139",
+    "guideName": "I Nengah Mudana",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-140",
+    "guideName": "I Nengah Murniawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-141",
+    "guideName": "I Nengah Murti",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-142",
+    "guideName": "I Nengah Pani",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-143",
+    "guideName": "I Nengah Putrawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-144",
+    "guideName": "I Nengah Riasa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-145",
+    "guideName": "I Nengah Sadya",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-146",
+    "guideName": "I Nengah Sarmadi",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-147",
+    "guideName": "I Nengah Sedeng",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-148",
+    "guideName": "I Nengah Suardana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-149",
+    "guideName": "I Nengah Suartamayasa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-150",
+    "guideName": "I Nengah Suartana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-151",
+    "guideName": "I Nengah Sudarna",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-152",
+    "guideName": "I Nengah Sudarta",
+    "kategori": "Asing",
+    "regu": "A1, A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-153",
+    "guideName": "I Nengah Sujata",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-154",
+    "guideName": "I Nengah Sukarta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-155",
+    "guideName": "I Nengah Sumada",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-156",
+    "guideName": "I Nengah Supartama",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-157",
+    "guideName": "I Nengah Suta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-158",
+    "guideName": "I Nengah Tantra",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-159",
+    "guideName": "I Nengah Tapak",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-160",
+    "guideName": "I Nengah Widana",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-161",
+    "guideName": "I Nengah Wispa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-162",
+    "guideName": "I Nengah Yasa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-163",
+    "guideName": "I Ngurah P.Darma Y.",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-164",
+    "guideName": "I Noman Sribet",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-165",
+    "guideName": "I Nyoman Adi Sudarmaya",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-166",
+    "guideName": "I Nyoman Adnyana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-167",
+    "guideName": "I Nyoman Ardana",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-168",
+    "guideName": "I Nyoman Artawan",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-169",
+    "guideName": "I Nyoman Astawa",
+    "kategori": "Asing",
+    "regu": "A1, A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-170",
+    "guideName": "I Nyoman Darta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-171",
+    "guideName": "I Nyoman Darta (Angsoka)",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-172",
+    "guideName": "I Nyoman Darta (Kidul)",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-173",
+    "guideName": "I Nyoman Diasa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-174",
+    "guideName": "I Nyoman Donik",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-175",
+    "guideName": "I Nyoman Ganti",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-176",
+    "guideName": "I Nyoman Gumbreg",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-177",
+    "guideName": "I Nyoman Gunarsa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-178",
+    "guideName": "I Nyoman Hendra",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-179",
+    "guideName": "I Nyoman Kebek",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-180",
+    "guideName": "I Nyoman Mande",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-181",
+    "guideName": "I Nyoman Mangku Jati",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-182",
+    "guideName": "I Nyoman Mangku Ridana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-183",
+    "guideName": "I Nyoman Mangku Warta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-184",
+    "guideName": "I Nyoman Nyunyur",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-185",
+    "guideName": "I Nyoman Palgunada",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-186",
+    "guideName": "I Nyoman Pasta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-187",
+    "guideName": "I Nyoman Polos",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-188",
+    "guideName": "I Nyoman Pula Astawa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-189",
+    "guideName": "I Nyoman Regog",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-190",
+    "guideName": "I Nyoman Reneng",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-191",
+    "guideName": "I Nyoman Sandi Yasa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-192",
+    "guideName": "I Nyoman Santoso",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-193",
+    "guideName": "I Nyoman Selamat",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-194",
+    "guideName": "I Nyoman Suartana",
+    "kategori": "Asing",
+    "regu": "A1, A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-195",
+    "guideName": "I Nyoman Suartika",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-196",
+    "guideName": "I Nyoman Subawa",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-197",
+    "guideName": "I Nyoman Sudarsana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-198",
+    "guideName": "I Nyoman Sudarta",
+    "kategori": "Asing",
+    "regu": "A1, A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-199",
+    "guideName": "I Nyoman Sudiatmika",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-200",
+    "guideName": "I Nyoman Sumerta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-201",
+    "guideName": "I Nyoman Sura",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-202",
+    "guideName": "I Nyoman Suri",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-203",
+    "guideName": "I Nyoman Tawa",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-204",
+    "guideName": "I Nyoman Wanta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-205",
+    "guideName": "I Nyoman Weni Artawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-206",
+    "guideName": "I Nyoman Wiradarma",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-207",
+    "guideName": "I Nyoman Wirawan",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-208",
+    "guideName": "I Nyoman Wirayasa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-209",
+    "guideName": "I Nyoman Witadana",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-210",
+    "guideName": "I Putu Agus Santika",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-211",
+    "guideName": "I Putu Agus Wiranata",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-212",
+    "guideName": "I Putu Ariasta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-213",
+    "guideName": "I Putu Ariawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-214",
+    "guideName": "I Putu Dedi Sudarta",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-215",
+    "guideName": "I Putu Edi Astika",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-216",
+    "guideName": "I Putu Gede Darma",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-217",
+    "guideName": "I Putu Jati Suantika",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-218",
+    "guideName": "I Putu Kariana",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-219",
+    "guideName": "I Putu Mastra",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-220",
+    "guideName": "I Putu Rembun",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-221",
+    "guideName": "I Putu Setiawan",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-222",
+    "guideName": "I Putu Suanda",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-223",
+    "guideName": "I Putu Suantara",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-224",
+    "guideName": "I Putu Suantara Yasa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-225",
+    "guideName": "I Putu Sudarta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-226",
+    "guideName": "I Putu Supriadi",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-227",
+    "guideName": "I Putu Suyasa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-228",
+    "guideName": "I Putu Widana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-229",
+    "guideName": "I Putu Wirawan",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-230",
+    "guideName": "I Wayan Ada",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-231",
+    "guideName": "I Wayan Andika",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-232",
+    "guideName": "I Wayan Ardana",
+    "kategori": "Asing, Domestik",
+    "regu": "A1, D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-233",
+    "guideName": "I Wayan Badra",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-234",
+    "guideName": "I Wayan Budiarta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-235",
+    "guideName": "I Wayan Dapid",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-236",
+    "guideName": "I Wayan Darmana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-237",
+    "guideName": "I Wayan Darmayasa",
+    "kategori": "Asing, Domestik",
+    "regu": "A1, D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-238",
+    "guideName": "I Wayan Darpa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-239",
+    "guideName": "I Wayan Darsana",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-240",
+    "guideName": "I Wayan Darta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-241",
+    "guideName": "I Wayan Degdeg",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-242",
+    "guideName": "I Wayan Eka Sudiantara",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-243",
+    "guideName": "I Wayan Esti Asa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-244",
+    "guideName": "I Wayan Jiguh",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-245",
+    "guideName": "I Wayan Juliarta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-246",
+    "guideName": "I Wayan Kariada",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-247",
+    "guideName": "I Wayan Kartika",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-248",
+    "guideName": "I Wayan Kenzet",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-249",
+    "guideName": "I Wayan Lampung",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-250",
+    "guideName": "I Wayan Marna",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-251",
+    "guideName": "I Wayan Mentik",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-252",
+    "guideName": "I Wayan Mester",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-253",
+    "guideName": "I Wayan Mudana",
+    "kategori": "Asing, Domestik",
+    "regu": "A1, D1, D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-254",
+    "guideName": "I Wayan Mudastra",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-255",
+    "guideName": "I Wayan Nuasa",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-256",
+    "guideName": "I Wayan Pait",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-257",
+    "guideName": "I Wayan Pasek",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-258",
+    "guideName": "I Wayan Rahasia",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-259",
+    "guideName": "I Wayan Rapet",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-260",
+    "guideName": "I Wayan Rauh",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-261",
+    "guideName": "I Wayan Rempeg",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-262",
+    "guideName": "I Wayan Sriana",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-263",
+    "guideName": "I Wayan Srimulih",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-264",
+    "guideName": "I Wayan Suastika",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-265",
+    "guideName": "I Wayan Subagia",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-266",
+    "guideName": "I Wayan Suda",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-267",
+    "guideName": "I Wayan Sudana",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-268",
+    "guideName": "I Wayan Sudarma",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-269",
+    "guideName": "I Wayan Sudarta",
+    "kategori": "Asing",
+    "regu": "A1, A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-270",
+    "guideName": "I Wayan Sudiarta",
+    "kategori": "Asing, Domestik",
+    "regu": "A2, D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-271",
+    "guideName": "I Wayan Sujana",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-272",
+    "guideName": "I Wayan Sujatiyasa",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-273",
+    "guideName": "I Wayan Sukarta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-274",
+    "guideName": "I Wayan Sumarta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-275",
+    "guideName": "I Wayan Suparta",
+    "kategori": "Asing, Domestik",
+    "regu": "A2, D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-276",
+    "guideName": "I Wayan Sutama",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-277",
+    "guideName": "I Wayan Sweta",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-278",
+    "guideName": "I Wayan Tegal",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-279",
+    "guideName": "I Wayan Temen",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-280",
+    "guideName": "I Wayan Warta",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-281",
+    "guideName": "I Wayan Wirya",
+    "kategori": "Domestik",
+    "regu": "D1, D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-282",
+    "guideName": "I Wayan Yasa",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-283",
+    "guideName": "Kadek Suastika",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-284",
+    "guideName": "Ketut Aryawan",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-285",
+    "guideName": "Komang Ada",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-286",
+    "guideName": "Komang Made Rauh",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-287",
+    "guideName": "Komang Suparta",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-288",
+    "guideName": "Mangku Gel-gel",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-289",
+    "guideName": "Manik Suastika",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-290",
+    "guideName": "Neengah Sudiana/Onni",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-291",
+    "guideName": "Nengah Suarnawa",
+    "kategori": "Asing",
+    "regu": "A2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-292",
+    "guideName": "Nengah Suyadnya",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-293",
+    "guideName": "Nengah Tebeng",
+    "kategori": "Domestik",
+    "regu": "D1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-294",
+    "guideName": "Nyoman Darmawan",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  },
+  {
+    "guideId": "G-295",
+    "guideName": "Nyoman Putra",
+    "kategori": "Domestik",
+    "regu": "D2",
+    "aktif": true
+  },
+  {
+    "guideId": "G-296",
+    "guideName": "Wayan Nitra",
+    "kategori": "Asing",
+    "regu": "A1",
+    "aktif": true
+  }
 ]
