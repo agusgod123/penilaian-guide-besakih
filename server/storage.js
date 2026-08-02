@@ -27,7 +27,7 @@ function createSqliteStore() {
       timestamp    TEXT NOT NULL,
       idCard       INTEGER NOT NULL,
       uniform      INTEGER NOT NULL,
-      etika        INTEGER NOT NULL,
+      review       INTEGER NOT NULL DEFAULT 0,
       catatan      TEXT,
       receivedAt   TEXT NOT NULL
     );
@@ -36,16 +36,23 @@ function createSqliteStore() {
 
   const insert = db.prepare(`
     INSERT OR IGNORE INTO evaluations
-      (evaluationId, guideId, guideName, pos, timestamp, idCard, uniform, etika, catatan, receivedAt)
+      (evaluationId, guideId, guideName, pos, timestamp, idCard, uniform, review, catatan, receivedAt)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
+
+  // Beberapa sistem berkas (mis. folder jaringan) mengizinkan pembuatan tabel
+  // tapi menolak penulisan. Kalau itu terjadi, seluruh penilaian akan ditolak
+  // tanpa pesan yang jelas — jadi kemampuan menulis diuji lebih dulu di sini.
+  const uji = '__uji_tulis__';
+  insert.run(uji, '-', '-', 1, '-', 0, 0, 0, '', new Date().toISOString());
+  db.prepare('DELETE FROM evaluations WHERE evaluationId = ?').run(uji);
 
   return {
     kind: 'sqlite',
     saveEvaluation(e) {
       const info = insert.run(
         e.evaluationId, e.guideId, e.guideName, e.pos, e.timestamp,
-        e.criteria.idCard ? 1 : 0, e.criteria.uniform ? 1 : 0, e.criteria.etika ? 1 : 0,
+        e.criteria.idCard ? 1 : 0, e.criteria.uniform ? 1 : 0, Number(e.criteria.review) || 0,
         e.catatan || '', new Date().toISOString()
       );
       return { duplicate: info.changes === 0 };
@@ -68,7 +75,7 @@ function rowToEval(r) {
     guideName: r.guideName,
     pos: r.pos,
     timestamp: r.timestamp,
-    criteria: { idCard: !!r.idCard, uniform: !!r.uniform, etika: !!r.etika },
+    criteria: { idCard: !!r.idCard, uniform: !!r.uniform, review: Number(r.review) || 0 },
     catatan: r.catatan || '',
     receivedAt: r.receivedAt,
   };

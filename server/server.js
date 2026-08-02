@@ -68,23 +68,27 @@ function validateEvaluation(e) {
   const c = e.criteria;
   if (!c || typeof c !== 'object') errors.push('criteria wajib');
   else {
-    for (const k of ['idCard', 'uniform', 'etika']) {
+    for (const k of ['idCard', 'uniform']) {
       if (typeof c[k] !== 'boolean') errors.push(`criteria.${k} harus boolean`);
+    }
+    // Review berupa angka (0 = tidak ada review), bukan ya/tidak
+    if (!Number.isFinite(Number(c.review)) || Number(c.review) < 0) {
+      errors.push('criteria.review harus angka >= 0');
     }
   }
   return errors;
 }
 
 function toCsv(rows) {
-  const head = ['evaluationId', 'timestamp', 'pos', 'guideId', 'guideName', 'idCard', 'uniform', 'etika', 'catatan'];
+  const head = ['evaluationId', 'timestamp', 'pos', 'guideId', 'guideName', 'uniform', 'idCard', 'review', 'catatan'];
   const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines = [head.join(',')];
   for (const r of rows) {
     lines.push([
       r.evaluationId, r.timestamp, r.pos, r.guideId, r.guideName,
-      r.criteria.idCard ? 'Ya' : 'Tidak',
-      r.criteria.uniform ? 'Ya' : 'Tidak',
-      r.criteria.etika ? 'Ya' : 'Tidak',
+      r.criteria.uniform ? 1 : 0,
+      r.criteria.idCard ? 1 : 0,
+      Number(r.criteria.review) || 0,
       r.catatan || '',
     ].map(esc).join(','));
   }
