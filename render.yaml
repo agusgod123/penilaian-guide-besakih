@@ -1,0 +1,29 @@
+# Blueprint Render — backend REST API
+#
+# Cara pakai:
+#   1. Daftar di https://render.com (bisa login dengan akun GitHub)
+#   2. New → Blueprint → pilih repo penilaian-guide-besakih
+#   3. Render membaca file ini dan membuat service-nya otomatis
+#
+# PENTING soal paket Free:
+#   - Disk bersifat sementara. Data penilaian di server akan HILANG setiap kali
+#     service restart atau di-deploy ulang. Untuk produksi, tambahkan Persistent
+#     Disk (paket berbayar) dengan mountPath /opt/render/project/src/server/data,
+#     atau ganti storage.js ke database eksternal (Postgres/Turso).
+#   - Service Free "tidur" setelah ~15 menit tanpa trafik. Permintaan pertama
+#     setelah tidur butuh ~30 detik. Aplikasi menangani ini dengan aman:
+#     entri tetap tertunda dan dicoba lagi otomatis (exponential backoff).
+
+services:
+  - type: web
+    name: penilaian-guide-besakih-api
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: echo "tidak ada dependensi untuk di-install"
+    startCommand: node server/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

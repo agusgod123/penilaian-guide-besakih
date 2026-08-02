@@ -33,6 +33,48 @@ Setelah ter-install, aplikasi berjalan penuh tanpa jaringan.
 
 ---
 
+## Deploy
+
+### 1. PWA → GitHub Pages (gratis, HTTPS)
+
+Repo sudah berisi `.github/workflows/deploy-pages.yml`. Cukup aktifkan sekali:
+
+**Settings → Pages → Source: GitHub Actions**
+
+Setiap push ke `main` yang menyentuh `public/` akan otomatis mem-publish situs ke
+`https://<username>.github.io/penilaian-guide-besakih/`. Dari alamat itu aplikasi
+sudah bisa di-install sebagai PWA di HP staff (HTTPS aktif).
+
+### 2. Backend → Render (gratis)
+
+Repo berisi `render.yaml`. Di [render.com](https://render.com): **New → Blueprint →
+pilih repo ini**. Render membaca blueprint dan menjalankan `node server/server.js`.
+
+Setelah backend hidup, isi alamatnya di `public/config.js`:
+
+```js
+window.APP_CONFIG = { serverUrl: 'https://penilaian-guide-besakih-api.onrender.com' };
+```
+
+Commit ulang → Pages otomatis ter-deploy dengan alamat server tersebut. Staff juga
+bisa menimpanya kapan saja lewat menu **Pengaturan** tanpa mengubah kode.
+
+> **Batasan paket Free Render — penting:**
+> disk bersifat sementara, jadi data di server hilang setiap kali service restart
+> atau di-deploy ulang. Service juga "tidur" setelah ~15 menit tanpa trafik
+> (permintaan pertama lambat ~30 detik; aplikasi menanganinya dengan retry otomatis,
+> tidak ada data yang hilang di sisi perangkat). Untuk produksi, tambahkan Persistent
+> Disk berbayar dengan mount ke `server/data`, atau ganti `storage.js` ke database
+> eksternal.
+
+### Selama backend belum ada
+
+Aplikasi tetap berfungsi 100%: penilaian tersimpan dan terenkripsi di perangkat,
+menunggu di antrean, dan layar **Pengaturan** menampilkan peringatan bahwa alamat
+server belum diisi. Begitu alamat diisi, seluruh antrean terkirim otomatis.
+
+---
+
 ## Struktur
 
 ```
@@ -44,6 +86,7 @@ app/
 │  └─ data/            Database (dibuat otomatis, tidak di-commit)
 ├─ public/             Yang di-install ke perangkat — 92 KB total
 │  ├─ index.html       Semua layar (SPA)
+│  ├─ config.js        Alamat backend (untuk deploy statis)
 │  ├─ css/styles.css   Desain large-tap, kontras tinggi
 │  ├─ js/db.js         IndexedDB + enkripsi AES-256-GCM + backup
 │  ├─ js/sync.js       Antrean sync, deteksi jaringan, exponential backoff
@@ -51,9 +94,11 @@ app/
 │  ├─ sw.js            Service worker (cache-first app shell)
 │  ├─ manifest.webmanifest
 │  └─ icons/
-└─ test/
-   ├─ app.test.mjs     34 pemeriksaan otomatis (jsdom + fake-indexeddb)
-   └─ e2e.mjs          Uji browser sungguhan (opsional, butuh Puppeteer)
+├─ test/
+│  ├─ app.test.mjs     37 pemeriksaan otomatis (jsdom + fake-indexeddb)
+│  └─ e2e.mjs          Uji browser sungguhan (opsional, butuh Puppeteer)
+├─ render.yaml         Blueprint deploy backend ke Render
+└─ .github/workflows/  Deploy otomatis PWA ke GitHub Pages
 ```
 
 ---
@@ -117,7 +162,7 @@ node server/server.js &   # server harus hidup
 npm test
 ```
 
-Menjalankan 34 pemeriksaan yang memuat `index.html` sungguhan beserta seluruh
+Menjalankan 37 pemeriksaan yang memuat `index.html` sungguhan beserta seluruh
 skripnya, dan menguji setiap Acceptance Criteria PRD §9 termasuk simulasi putus
 jaringan, antrean sync, retry, enkripsi, dan idempotensi server.
 
