@@ -51,10 +51,23 @@ Object.defineProperty(window.navigator, 'onLine', { get: () => online, configura
 const downloads = [];
 window.HTMLAnchorElement.prototype.click = function () { downloads.push(this.download); };
 
+/* Pemeriksaan statis config.js — dijalankan sebelum aplikasi dimuat.
+   Menjaga agar alamat server tidak pernah tidak sengaja terkirim dalam
+   keadaan kosong, yang membuat aplikasi tidak siap pakai di perangkat baru. */
+const isiConfig = fs.readFileSync(path.join(APP, 'public', 'config.js'), 'utf8');
+const cocokUrl = isiConfig.match(/serverUrl:\s*'([^']*)'/);
+check('config.js berisi alamat server (aplikasi siap pakai tanpa setting manual)',
+  !!cocokUrl && /^https?:\/\/\S+$/.test(cocokUrl[1]),
+  cocokUrl && cocokUrl[1] ? cocokUrl[1].slice(0, 42) + '…' : '(kosong)');
+
 // jalankan skrip aplikasi berurutan
 for (const f of ['config.js', 'js/db.js', 'js/sync.js', 'js/app.js']) {
   window.eval(fs.readFileSync(path.join(APP, 'public', f), 'utf8'));
 }
+
+/* Selama pengujian, arahkan ke server Node lokal — bukan ke Apps Script
+   sungguhan di config.js — supaya pengujian tidak menyentuh data produksi. */
+window.localStorage.setItem('besakih.settings', JSON.stringify({ serverUrl: BASE }));
 if (window.document.readyState === 'loading') {
   window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
 }
@@ -250,7 +263,9 @@ setVal($('#serverUrl'), 'https://server-lain.contoh.id/');
 check('Alamat server tersimpan & dinormalisasi',
   window.Sync.baseUrl() === 'https://server-lain.contoh.id');
 setVal($('#serverUrl'), '');
-check('Alamat kosong kembali ke server asal', window.Sync.baseUrl() === BASE);
+check('Alamat kosong jatuh ke alamat bawaan config.js',
+  window.Sync.baseUrl() === String(window.APP_CONFIG.serverUrl).replace(/\/+$/, ''),
+  window.Sync.baseUrl().slice(0, 42) + '…');
 
 /* ---------- config.js sebagai fallback (deploy statis) ---------- */
 window.APP_CONFIG.serverUrl = 'https://contoh-api.onrender.com/';
@@ -259,11 +274,12 @@ check('config.js dipakai bila Pengaturan kosong',
 setVal($('#serverUrl'), 'https://prioritas.contoh.id');
 check('Pengaturan staff mengalahkan config.js',
   window.Sync.baseUrl() === 'https://prioritas.contoh.id');
-setVal($('#serverUrl'), '');
-window.APP_CONFIG.serverUrl = '';
-
-check('Peringatan server tidak muncul saat backend satu origin',
+check('Peringatan "alamat server belum diisi" tidak muncul di perangkat baru',
   window.Sync.needsServerUrl() === false && $('#serverNotice').hidden === true);
+
+// kembalikan ke server uji lokal untuk sisa pemeriksaan
+window.APP_CONFIG.serverUrl = '';
+setVal($('#serverUrl'), BASE);
 
 $('#optForceOffline').checked = true;
 $('#optForceOffline').dispatchEvent(new window.Event('change', { bubbles: true }));
