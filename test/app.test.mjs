@@ -261,6 +261,97 @@ await fetch(BASE + '/api/evaluations', {
 const after = (await (await fetch(BASE + '/api/health')).json()).total;
 check('Pengiriman ulang tidak menggandakan data di server (append-only)', before === after, `${before} → ${after}`);
 
+/* ---------- Adapter Google Apps Script ---------- */
+{
+  const GAS = 'https://script.google.com/macros/s/AKfycbXXXX/exec';
+  const asli = window.fetch;
+  let terakhir = null;
+  let balasan = () => ({ ok: true, status: 200, body: { accepted: [], rejected: [] } });
+
+  window.fetch = async (url, opts = {}) => {
+    if (String(url).indexOf('script.google.com') === -1) return asli(url, opts);
+    terakhir = { url: String(url), opts, body: opts.body ? JSON.parse(opts.body) : null };
+    const r = balasan(terakhir);
+    return {
+      ok: r.ok, status: r.status,
+      json: async () => r.body,
+      text: async () => JSON.stringify(r.body),
+    };
+  };
+
+  window.Sync.Settings.set({ serverUrl: GAS });
+  check('Mendeteksi backend Apps Script dari URL', window.Sync.serverKind() === 'gas');
+  check('Endpoint memakai query parameter, bukan path',
+    window.Sync.endpoint('guides') === GAS + '?action=guides' &&
+    window.Sync.endpoint('health') === GAS + '?action=health' &&
+    window.Sync.endpoint('evaluations') === GAS);
+
+  // Daftar guide lewat Apps Script
+  balasan = () => ({ ok: true, status: 200, body: { guides: [
+    { guideId: 'G-900', guideName: 'Guide Dari Sheets', lisensi: 'X', aktif: true },
+  ] } });
+  const dariSheets = await window.Sync.refreshGuides();
+  check('Daftar guide terbaca dari Apps Script',
+    dariSheets.length === 1 && dariSheets[0].guideId === 'G-900');
+
+  // Simpan satu penilaian baru untuk diuji kirim
+  const idGas = 'gas-' + Date.now();
+  await window.DB.save({
+    evaluationId: idGas, guideId: 'G-900', guideName: 'Guide Dari Sheets', pos: 2,
+    timestamp: new Date().toISOString(),
+    criteria: { idCard: true, uniform: true, etika: false }, catatan: '',
+  });
+
+  // 1) Apps Script membalas 200 TAPI tidak mengonfirmasi → tidak boleh dianggap terkirim
+  balasan = () => ({ ok: true, status: 200, body: { accepted: [], rejected: [] } });
+  let r = await window.Sync.syncNow({ force: true });
+  check('HTTP 200 tanpa konfirmasi TIDAK dianggap terkirim',
+    r.sent === 0 && r.failed === 1 && (await window.DB.counts()).pending === 1,
+    r.lastError || '');
+
+  // 2) busy → kegagalan sementara, tetap di antrean
+  balasan = () => ({ ok: true, status: 200, body: { accepted: [], rejected: [], busy: true } });
+  r = await window.Sync.syncNow({ force: true });
+  check('Respons busy diperlakukan sebagai gagal sementara',
+    r.sent === 0 && (await window.DB.counts()).pending === 1);
+
+  // 3) Content-Type harus text/plain agar lolos CORS Apps Script
+  check('POST ke Apps Script memakai Content-Type text/plain',
+    terakhir.opts.headers['Content-Type'] === 'text/plain;charset=utf-8');
+  check('Body tetap JSON sesuai model data PRD',
+    terakhir.body.evaluationId === idGas && terakhir.body.pos === 2 &&
+    terakhir.body.criteria.uniform === true);
+
+  // 4) Konfirmasi benar → baru ditandai terkirim
+  balasan = (req) => ({ ok: true, status: 200, body: {
+    accepted: [{ evaluationId: req.body.evaluationId, synced: true, duplicate: false }],
+    rejected: [],
+  } });
+  r = await window.Sync.syncNow({ force: true });
+  check('Konfirmasi evaluationId → ditandai terkirim',
+    r.sent === 1 && (await window.DB.counts()).pending === 0);
+
+  // 5) Ditolak permanen → tidak diulang selamanya
+  const idTolak = 'gas-tolak-' + Date.now();
+  await window.DB.save({
+    evaluationId: idTolak, guideId: 'G-900', guideName: 'Guide Dari Sheets', pos: 3,
+    timestamp: new Date().toISOString(),
+    criteria: { idCard: true, uniform: true, etika: true }, catatan: '',
+  });
+  balasan = (req) => ({ ok: true, status: 200, body: {
+    accepted: [], rejected: [{ evaluationId: req.body.evaluationId, errors: ['pos harus 1, 2, atau 3'] }],
+  } });
+  r = await window.Sync.syncNow({ force: true });
+  const ditandai = (await window.DB.all()).find(e => e.evaluationId === idTolak);
+  check('Data ditolak Apps Script ditandai gagal, bukan diulang terus',
+    r.failed === 1 && !!ditandai.lastError && ditandai.lastError.indexOf('Ditolak server') === 0,
+    ditandai.lastError || '');
+
+  window.fetch = asli;
+  setVal($('#serverUrl'), '');
+  check('Kembali ke mode REST saat alamat dikosongkan', window.Sync.serverKind() === 'rest');
+}
+
 /* ---------- Atribut [hidden] benar-benar menyembunyikan ---------- */
 {
   const css = fs.readFileSync(path.join(APP, 'public', 'css', 'styles.css'), 'utf8');
