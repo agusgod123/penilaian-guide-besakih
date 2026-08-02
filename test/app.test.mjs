@@ -156,7 +156,8 @@ await sleep(50);
 setVal($('#guideInput'), 'I Wayan Suparta');
 click($('[data-crit=idCard] .seg.yes'));
 click($('[data-crit=uniform] .seg.no'));
-click($('[data-crit=etika] .seg.yes'));
+click($('[data-crit=review] .stepbtn[data-step="1"]'));
+click($('[data-crit=review] .stepbtn[data-step="1"]'));
 setVal($('#catatan'), 'uji otomatis');
 check('Draft otomatis tersimpan sebelum submit', !!window.localStorage.getItem('besakih.draft'));
 
@@ -171,7 +172,7 @@ const seharusnya = dariServer.find(g => g.guideName === 'I Wayan Suparta');
 check('Model data sesuai PRD §7',
   !!saved.evaluationId && saved.guideId === seharusnya.guideId && saved.pos === 1 &&
   !isNaN(Date.parse(saved.timestamp)) &&
-  saved.criteria.idCard === true && saved.criteria.uniform === false && saved.criteria.etika === true,
+  saved.criteria.idCard === true && saved.criteria.uniform === false && saved.criteria.review === 2,
   JSON.stringify({ guideId: saved.guideId, pos: saved.pos, criteria: saved.criteria }));
 
 /* ---------- Enkripsi ---------- */
@@ -217,7 +218,7 @@ check('AC-4 badge offline tampil & UI tetap responsif',
 
 click($('[data-crit=idCard] .seg.no'));
 click($('[data-crit=uniform] .seg.yes'));
-click($('[data-crit=etika] .seg.yes'));
+click($('[data-crit=review] .stepbtn[data-step="1"]'));
 $('#formEval').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
 await sleep(600);
 counts = await window.DB.counts();
@@ -316,7 +317,7 @@ window.Sync.Settings.set({ serverUrl: 'http://127.0.0.1:59999' });
 const evalId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 await window.DB.save({
   evaluationId: evalId, guideId: 'G-003', guideName: 'I Gede Budiarsana', pos: 3,
-  timestamp: new Date().toISOString(), criteria: { idCard: true, uniform: true, etika: false }, catatan: '',
+  timestamp: new Date().toISOString(), criteria: { idCard: true, uniform: true, review: 0 }, catatan: '',
 });
 const failRes = await window.Sync.syncNow({ force: true });
 check('Kegagalan jaringan ditangani & entri tetap tertunda',
@@ -331,7 +332,7 @@ await fetch(BASE + '/api/evaluations', {
   method: 'POST', headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     evaluationId: evalId, guideId: 'G-003', guideName: 'I Gede Budiarsana', pos: 3,
-    timestamp: new Date().toISOString(), criteria: { idCard: true, uniform: true, etika: false },
+    timestamp: new Date().toISOString(), criteria: { idCard: true, uniform: true, review: 0 },
   }),
 });
 const after = (await (await fetch(BASE + '/api/health')).json()).total;
@@ -421,7 +422,7 @@ check('Pengiriman ulang tidak menggandakan data di server (append-only)', before
   await window.DB.save({
     evaluationId: idGas, guideId: 'G-900', guideName: 'Guide Dari Sheets', pos: 2,
     timestamp: new Date().toISOString(),
-    criteria: { idCard: true, uniform: true, etika: false }, catatan: '',
+    criteria: { idCard: true, uniform: true, review: 0 }, catatan: '',
   });
 
   // 1) Apps Script membalas 200 TAPI tidak mengonfirmasi → tidak boleh dianggap terkirim
@@ -458,7 +459,7 @@ check('Pengiriman ulang tidak menggandakan data di server (append-only)', before
   await window.DB.save({
     evaluationId: idTolak, guideId: 'G-900', guideName: 'Guide Dari Sheets', pos: 3,
     timestamp: new Date().toISOString(),
-    criteria: { idCard: true, uniform: true, etika: true }, catatan: '',
+    criteria: { idCard: true, uniform: true, review: 1 }, catatan: '',
   });
   balasan = (req) => ({ ok: true, status: 200, body: {
     accepted: [], rejected: [{ evaluationId: req.body.evaluationId, errors: ['pos harus 1, 2, atau 3'] }],

@@ -67,7 +67,7 @@ await page.type('#guideInput', 'I Wayan Suparta');
 await page.evaluate(() => {
   document.querySelector('[data-crit=idCard] .seg.yes').click();
   document.querySelector('[data-crit=uniform] .seg.no').click();
-  document.querySelector('[data-crit=etika] .seg.yes').click();
+  document.querySelector('[data-crit=review] .stepbtn[data-step="1"]').click();
 });
 await page.type('#catatan', 'uji otomatis');
 await page.click('#btnSave');
@@ -118,7 +118,7 @@ await page.evaluate(() => {
   document.querySelector('#guideInput').dispatchEvent(new Event('input', { bubbles: true }));
   document.querySelector('[data-crit=idCard] .seg.no').click();
   document.querySelector('[data-crit=uniform] .seg.yes').click();
-  document.querySelector('[data-crit=etika] .seg.yes').click();
+  document.querySelector('[data-crit=review] .stepbtn[data-step="1"]').click();
 });
 await page.click('#btnSave');
 await sleep(800);
