@@ -9,7 +9,18 @@ Penilaian mengikuti cara tim selama ini: **Uniform** dan **ID-Card** bernilai
 (jumlah review, 0–20). Hasilnya otomatis dirangkum ke tab rekap bulanan
 berformat sama seperti berkas *NILAI REWARD* yang biasa dipakai.
 
-Dibangun sesuai `PRD_Guide_Evaluation_App.md`.
+Dibangun sesuai [`docs/PRD-APLIKASI.md`](docs/PRD-APLIKASI.md) (menggantikan
+`PRD_Guide_Evaluation_App.md`; penomoran §4.1/§4.4/§5/§7/§8/§9/§10 dan
+AC-1…AC-8 dipertahankan agar rujukan di dalam kode tetap sahih).
+
+## Dokumentasi
+
+| Berkas | Untuk siapa | Isinya |
+| --- | --- | --- |
+| [`docs/PANDUAN-PEMAKAIAN.md`](docs/PANDUAN-PEMAKAIAN.md) | **Staff & admin** | Panduan langkah demi langkah dengan bahasa sederhana — memasang aplikasi, menilai guide, melihat data di aplikasi maupun di spreadsheet, dan penanganan masalah |
+| [`docs/PRD-APLIKASI.md`](docs/PRD-APLIKASI.md) | Pengembang | Spesifikasi lengkap untuk membangun ulang dari nol: kebutuhan fungsional, model data, kontrak API, 20 kriteria penerimaan, risiko, dan alasan tiap keputusan desain |
+| [`docs/ALUR-APLIKASI.md`](docs/ALUR-APLIKASI.md) | Pengembang | 13 diagram alur: arsitektur, sinkronisasi, sisi server, penyusunan rekap, penyimpanan, service worker |
+| [`docs/RENCANA-BACKEND-GOOGLE-SHEETS.md`](docs/RENCANA-BACKEND-GOOGLE-SHEETS.md) | Pengembang | Rancangan backend spreadsheet beserta batasannya |
 
 ---
 
@@ -270,8 +281,35 @@ Bila satu guide dinilai di beberapa pos pada hari yang sama:
 **Uniform & ID diambil yang paling buruk**, **Review diambil yang tertinggi**
 supaya review yang tercatat di salah satu pos tidak hilang.
 
-Pembaruan: otomatis tiap malam (trigger 23.00) dan lewat menu
-**Penilaian Guide → Perbarui Rekap Bulan Ini** di spreadsheet.
+### Kapan rekap diperbarui
+
+Aplikasi menulis ke tab **`Evaluations`**; tab **`Rekap …`** disusun belakangan
+oleh trigger. Jadwalnya:
+
+| Pemicu | Kapan |
+| --- | --- |
+| Trigger `rekapOtomatis` | tiap 5 menit, **hanya** bila ada penilaian baru masuk |
+| Trigger `rekapHarian` | tiap malam 23.00, sebagai jaring pengaman |
+| Menu **Perbarui Rekap Bulan Ini** | saat itu juga |
+
+Rekap sengaja tidak disusun di dalam `doPost`: menyusun empat tab regu memakan
+belasan detik, dan aplikasi di lapangan akan menganggap penilaian gagal bila
+balasannya terlalu lama.
+
+Kedua trigger dipasang otomatis saat `setup()` dijalankan. Kalau perlu dipasang
+ulang: menu **Penilaian Guide → Nyalakan Pembaruan Otomatis**.
+
+### Kalau hasil tidak terlihat di spreadsheet
+
+Tiap tab rekap membawa cap **“Diperbarui: …”** di pojok kanan atas — cap yang
+lama berarti rekapnya belum disusun ulang, **bukan** datanya hilang.
+
+1. Buka tab `Evaluations`. Kalau baris barunya ada di sana, data sudah aman.
+2. Menu **Penilaian Guide → Periksa Kesehatan Data** — menyusun ulang rekap
+   sekarang juga sekaligus melaporkan jumlah penilaian, trigger yang aktif, dan
+   `guideId` yang tidak terdaftar di tab `Guides` (baris seperti itu tidak akan
+   pernah muncul di rekap).
+3. Kalau trigger aktif terhitung 0: **Nyalakan Pembaruan Otomatis**.
 
 ---
 

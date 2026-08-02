@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '1.1.0';
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
 
@@ -121,9 +121,14 @@
         fillGuideInputs();
       }
     } catch {
+      // Ditulis ke barisnya sendiri, bukan menimpa #guideHelp — di dalamnya ada
+      // #guideCount yang masih dipakai fillGuideInputs().
       if (!guides.length) {
-        $('#guideHelp').innerHTML =
-          '⚠️ Daftar guide tidak dapat dimuat. Tutup lalu buka ulang aplikasi.';
+        const el = $('#guideAmbigu');
+        if (el) {
+          el.textContent = '⚠️ Daftar guide tidak dapat dimuat. Tutup lalu buka ulang aplikasi.';
+          el.hidden = false;
+        }
       }
     }
   }
@@ -184,6 +189,35 @@
     return cari(guidesTersaring()) || cari(guides);
   }
 
+  /**
+   * Penentuan guide saat penilaian DISIMPAN — sengaja lebih ketat daripada
+   * findGuide yang dipakai untuk pratinjau saat mengetik.
+   *
+   * Banyak nama guide di sini hanya beda satu kata: mengetik "Darta" cocok
+   * untuk 14 orang. Menebak yang pertama berarti penilaian tercatat atas nama
+   * orang yang salah tanpa ada yang tahu — jadi ketikan yang masih ambigu
+   * ditolak, bukan ditebak.
+   */
+  function guideUntukSimpan(name) {
+    const teks = String(name || '').trim();
+    const q = teks.toLowerCase();
+    if (!q) return { error: 'Pilih nama guide dulu' };
+
+    for (const arr of [guidesTersaring(), guides]) {
+      const persis = arr.filter(g => g.guideName.toLowerCase() === q);
+      if (persis.length === 1) return { guide: persis[0] };
+      if (persis.length > 1) {
+        return { error: `Ada ${persis.length} guide bernama "${teks}" — pilih lewat Daftar Guide` };
+      }
+      const mirip = arr.filter(g => g.guideName.toLowerCase().includes(q));
+      if (mirip.length === 1) return { guide: mirip[0] };
+      if (mirip.length > 1) {
+        return { error: `"${teks}" cocok untuk ${mirip.length} guide — ketik nama lengkapnya`, kandidat: mirip };
+      }
+    }
+    return { error: `Guide "${teks}" tidak ada dalam daftar` };
+  }
+
   let guideKategoriFilter = '';
 
   function renderGuideCards() {
@@ -198,8 +232,10 @@
       box.innerHTML = `<div class="empty"><span class="big">👥</span>Tidak ada guide yang cocok.</div>`;
       return;
     }
-    // Batasi jumlah kartu yang digambar agar layar tetap ringan di perangkat lama
-    const tampil = list.slice(0, 120);
+    // Batasi jumlah kartu yang digambar agar layar tetap ringan di perangkat lama.
+    // Batas lama (120) menyembunyikan lebih dari separuh dari 296 guide bahkan
+    // saat tanpa filter, jadi dinaikkan sampai seluruh daftar muat.
+    const tampil = list.slice(0, 300);
     box.innerHTML = tampil.map(g => `
       <button class="card" data-guide="${esc(g.guideName)}">
         <span class="cstat">👤</span>
@@ -221,6 +257,7 @@
     $('#guideInput').value = '';
     $('#catatan').value = '';
     $('#guidePicked').classList.add('hidden');
+    tampilkanKandidat(null);
     $$('.seg').forEach(b => b.classList.remove('on'));
     $$('.criterion').forEach(c => {
       if (c.dataset.crit !== 'review') c.classList.add('unset');
@@ -274,10 +311,29 @@
     el.classList.remove('hidden');
   }
 
+  /** Tawarkan nama-nama yang mungkin dimaksud saat ketikan masih ambigu. */
+  function tampilkanKandidat(kandidat) {
+    const el = $('#guideAmbigu');
+    if (!el) return;
+    if (!kandidat || !kandidat.length) { el.hidden = true; el.textContent = ''; return; }
+    const tampil = kandidat.slice(0, 6);
+    el.innerHTML = 'Maksud Anda: ' + tampil.map(g =>
+      `<button type="button" class="chip" data-guide="${esc(g.guideName)}">${esc(g.guideName)}</button>`
+    ).join(' ') + (kandidat.length > tampil.length
+      ? ` <small>(+${kandidat.length - tampil.length} lainnya — ketik lebih lengkap)</small>` : '');
+    el.hidden = false;
+  }
+
   async function submitEval(e) {
     e.preventDefault();
-    const g = findGuide($('#guideInput').value);
-    if (!g) { toast('Pilih nama guide dulu', 'warn', '⚠️'); $('#guideInput').focus(); return; }
+    const pilihan = guideUntukSimpan($('#guideInput').value);
+    if (!pilihan.guide) {
+      toast(pilihan.error, 'warn', '⚠️');
+      tampilkanKandidat(pilihan.kandidat);
+      $('#guideInput').focus();
+      return;
+    }
+    const g = pilihan.guide;
     // Review boleh 0; yang wajib dipilih hanya Uniform dan ID-Card
     const missing = ['idCard', 'uniform'].filter(k => form.crit[k] === null);
     if (missing.length) { toast('Pilih Ya/Tidak untuk ID-Card dan Uniform', 'warn', '⚠️'); return; }
@@ -328,12 +384,22 @@
     box.innerHTML = list.map(e => {
       const c = e.criteria || {};
       const b = (label, val) => `<span class="badge ${val ? '' : 'bad'}">${label} ${val ? '✓' : '✕'}</span>`;
+      // Entri rusak TIDAK boleh digambar sebagai "ID ✕ Uniform ✕ Review 0":
+      // nilainya tidak diketahui, bukan nol — menampilkannya sebagai nol sama
+      // saja menuduh guide yang bersangkutan tidak patuh.
+      const nilai = e.corrupt
+        ? '<span class="badge bad">nilai tidak terbaca di perangkat ini</span>'
+        : `${b('ID', !!c.idCard)}${b('Uniform', !!c.uniform)}<span class="badge">Review ${Number(c.review) || 0}</span>`;
+      const keterangan = e.corrupt
+        ? `<span class="cmeta">Sudah terkirim ke server — lihat spreadsheet, kode ${esc(String(e.evaluationId).slice(0, 8))}</span>`
+        : '';
       return `<div class="card">
         <span class="cstat">${e.corrupt ? '⚠️' : e.synced ? '✅' : '⏳'}</span>
         <span class="cbody">
           <span class="cname">${esc(e.guideName)}</span>
           <span class="cmeta">Pos ${esc(e.pos)} · ${esc(fmtTime(e.timestamp))} · ${e.synced ? 'Terkirim' : 'Menunggu sync'}</span>
-          <span class="badges">${b('ID', !!c.idCard)}${b('Uniform', !!c.uniform)}<span class="badge">Review ${Number(c.review) || 0}</span></span>
+          <span class="badges">${nilai}</span>
+          ${keterangan}
           ${e.catatan ? `<span class="cmeta">📝 ${esc(e.catatan)}</span>` : ''}
           ${e.lastError && !e.synced ? `<span class="cmeta">⚠️ ${esc(e.lastError)}</span>` : ''}
         </span>
@@ -341,22 +407,145 @@
     }).join('');
   }
 
+  /* ---------------------- Export rekap ---------------------- */
+
+  // Pemisah titik koma. Excel berbahasa Indonesia memakai ';' sebagai pemisah
+  // daftar, sehingga berkas ber-koma menumpuk jadi satu kolom saat dibuka.
+  // Baris "sep=;" di paling atas membuat Excel membacanya benar di semua bahasa.
+  const SEP = ';';
+  const sel = v => {
+    const s = String(v ?? '');
+    return /[";\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const barisCsv = arr => arr.map(sel).join(SEP);
+
+  const jamLokal = iso => {
+    const d = new Date(iso);
+    const p = n => String(n).padStart(2, '0');
+    return isNaN(d) ? '' : `${p(d.getHours())}.${p(d.getMinutes())}`;
+  };
+
+  /** Kode regu apa adanya ("A1, D1") agar mudah dicocokkan dengan tab rekap. */
+  const reguGuide = gid => {
+    const g = guides.find(x => x.guideId === gid);
+    return g ? String(g.regu || '-') : '-';
+  };
+
+  /**
+   * Rangkuman penilaian yang tersimpan di PERANGKAT INI.
+   *
+   * Aturan penggabungannya sengaja disamakan persis dengan rekap di spreadsheet
+   * (`bangunRekap` pada server-gas/Code.gs): bila satu guide dinilai beberapa
+   * kali pada hari yang sama, UNI FORM dan ID diambil yang paling buruk
+   * sedangkan REVIEW diambil yang tertinggi. Dengan begitu angka di berkas ini
+   * bisa langsung disandingkan dengan tab "Rekap ..." untuk cross-check —
+   * kalau berbeda, berarti memang ada yang tidak sampai ke server.
+   */
+  function rangkumPerangkat(list) {
+    const harian = new Map(), perPos = new Map(), perTgl = new Map();
+
+    for (const e of list) {
+      const c = e.criteria || {};
+      const u = c.uniform ? 1 : 0;
+      const i = c.idCard ? 1 : 0;
+      const r = Math.max(0, Number(c.review) || 0);
+      const tgl = DB.tanggalLokal(e.timestamp);
+      const pos = Number(e.pos) || 0;
+
+      const kunci = `${e.guideId}|${tgl}`;
+      const h = harian.get(kunci);
+      if (!h) {
+        harian.set(kunci, { tgl, guideId: e.guideId, guideName: e.guideName,
+                            uniform: u, idCard: i, review: r, pos: new Set([pos]), jml: 1 });
+      } else {
+        h.uniform = Math.min(h.uniform, u);
+        h.idCard = Math.min(h.idCard, i);
+        h.review = Math.max(h.review, r);
+        h.pos.add(pos);
+        h.jml++;
+      }
+
+      const p = perPos.get(pos) || { pos, jml: 0, uniform: 0, idCard: 0, review: 0 };
+      p.jml++; p.uniform += u; p.idCard += i; p.review += r;
+      perPos.set(pos, p);
+
+      const t = perTgl.get(tgl) || { tgl, jml: 0, guides: new Set() };
+      t.jml++; t.guides.add(e.guideId);
+      perTgl.set(tgl, t);
+    }
+
+    const urutTgl = (a, b) => String(a.tgl).localeCompare(String(b.tgl));
+    return {
+      harian: [...harian.values()].sort((a, b) =>
+        urutTgl(a, b) || String(a.guideName).localeCompare(String(b.guideName))),
+      perPos: [...perPos.values()].sort((a, b) => a.pos - b.pos),
+      perTgl: [...perTgl.values()].sort(urutTgl),
+    };
+  }
+
   async function exportCsv() {
     const all = await DB.all();
     if (!all.length) { toast('Belum ada data untuk diexport', 'warn', '⚠️'); return; }
-    // Angka 1/0 supaya kolomnya bisa langsung dijumlah, sama seperti rekap manual
-    const head = ['evaluationId', 'waktu', 'pos', 'guideId', 'guideName', 'uniform', 'idCard', 'review', 'catatan', 'status'];
-    const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const rows = all.map(e => [
-      e.evaluationId, e.timestamp, e.pos, e.guideId, e.guideName,
+
+    // Entri yang gagal dibuka dipisahkan: nilainya TIDAK diketahui, jadi
+    // memasukkannya ke rekap sebagai 0 akan memalsukan angka.
+    const rusak = all.filter(e => e.corrupt);
+    const baik = all.filter(e => !e.corrupt);
+    const { harian, perPos, perTgl } = rangkumPerangkat(baik);
+
+    const out = [];
+    const judul = t => { out.push(''); out.push(barisCsv([t])); };
+
+    out.push('sep=' + SEP);
+    out.push(barisCsv(['REKAP PENILAIAN GUIDE — DARI PERANGKAT INI']));
+    out.push(barisCsv(['Diexport', `${new Date().toLocaleDateString('id-ID')} ${jamLokal(new Date().toISOString())}`]));
+    out.push(barisCsv(['Alamat server', Sync.baseUrl()]));
+    out.push(barisCsv(['Total penilaian', all.length]));
+    out.push(barisCsv(['Sudah terkirim', all.filter(e => e.synced).length]));
+    out.push(barisCsv(['Masih menunggu', all.filter(e => !e.synced).length]));
+    if (rusak.length) out.push(barisCsv(['Tidak terbaca di perangkat', rusak.length]));
+
+    judul('REKAP HARIAN PER GUIDE — cocokkan dengan tab Rekap A1/A2/D1/D2 di spreadsheet');
+    out.push(barisCsv(['(Bila satu guide dinilai beberapa kali sehari: UNI FORM & ID diambil yang paling buruk, REVIEW yang tertinggi)']));
+    out.push(barisCsv(['Tanggal', 'Nama Guide', 'guideId', 'Regu', 'UNI FORM', 'ID', 'REVIEW', 'Dinilai di Pos', 'Jumlah Penilaian']));
+    harian.forEach(h => out.push(barisCsv([
+      h.tgl, h.guideName, h.guideId, reguGuide(h.guideId),
+      h.uniform, h.idCard, h.review, [...h.pos].sort().join(' & '), h.jml,
+    ])));
+
+    judul('REKAP PER POS PEMERIKSAAN');
+    out.push(barisCsv(['Pos', 'Jumlah Penilaian', 'Uniform Sesuai', 'ID Sesuai', 'Total Review']));
+    perPos.forEach(p => out.push(barisCsv([p.pos, p.jml, p.uniform, p.idCard, p.review])));
+
+    judul('REKAP PER TANGGAL');
+    out.push(barisCsv(['Tanggal', 'Jumlah Penilaian', 'Guide Berbeda']));
+    perTgl.forEach(t => out.push(barisCsv([t.tgl, t.jml, t.guides.size])));
+
+    judul('RINCIAN SEMUA PENILAIAN');
+    out.push(barisCsv(['Tanggal', 'Jam', 'Pos', 'guideId', 'Nama Guide', 'Uniform', 'ID-Card',
+                       'Review', 'Catatan', 'Status', 'Waktu (UTC, sama dgn spreadsheet)', 'evaluationId']));
+    baik.forEach(e => out.push(barisCsv([
+      DB.tanggalLokal(e.timestamp), jamLokal(e.timestamp), e.pos, e.guideId, e.guideName,
       e.criteria?.uniform ? 1 : 0,
       e.criteria?.idCard ? 1 : 0,
       Number(e.criteria?.review) || 0,
       e.catatan || '', e.synced ? 'Terkirim' : 'Menunggu',
-    ].map(q).join(','));
-    const csv = '﻿' + [head.join(','), ...rows].join('\r\n');
-    download(`penilaian-guide-${new Date().toISOString().slice(0, 10)}.csv`, csv, 'text/csv;charset=utf-8');
-    toast('CSV diunduh', 'ok', '📄');
+      e.timestamp, e.evaluationId,
+    ])));
+
+    if (rusak.length) {
+      judul('DATA TIDAK TERBACA DI PERANGKAT INI');
+      out.push(barisCsv(['Nilainya tidak bisa dibuka di HP/tablet ini, tetapi baris dengan evaluationId berikut tetap ada di spreadsheet.']));
+      out.push(barisCsv(['Tanggal', 'Jam', 'Pos', 'Status', 'Waktu (UTC, sama dgn spreadsheet)', 'evaluationId']));
+      rusak.forEach(e => out.push(barisCsv([
+        DB.tanggalLokal(e.timestamp), jamLokal(e.timestamp), e.pos,
+        e.synced ? 'Terkirim' : 'Menunggu', e.timestamp, e.evaluationId,
+      ])));
+    }
+
+    const csv = '﻿' + out.join('\r\n');
+    download(`rekap-penilaian-${DB.tanggalLokal()}.csv`, csv, 'text/csv;charset=utf-8');
+    toast(`Rekap ${baik.length} penilaian diunduh`, 'ok', '📄');
   }
 
   /* ---------------------- Statistik & status ---------------------- */
@@ -454,7 +643,10 @@
       const gcard = e.target.closest('[data-guide]');
       if (gcard) {
         const g = findGuide(gcard.dataset.guide);
-        if (g) { form.guide = g; $('#guideInput').value = g.guideName; showPicked(g); saveDraft(); go('nilai'); }
+        if (g) {
+          form.guide = g; $('#guideInput').value = g.guideName;
+          showPicked(g); tampilkanKandidat(null); saveDraft(); go('nilai');
+        }
       }
     });
 
@@ -467,6 +659,7 @@
       form.guide = g;
       if (g && g.guideName.toLowerCase() === e.target.value.trim().toLowerCase()) showPicked(g);
       else $('#guidePicked').classList.add('hidden');
+      tampilkanKandidat(null);
       saveDraft();
       $('#draftNote').hidden = false;
     });
@@ -581,7 +774,12 @@
   function bindSync() {
     Sync.onChange((state, d) => {
       setNet(state, d);
-      if (state === 'done' && d.sent > 0) { toast(`${d.sent} data berhasil terkirim`, 'ok', '✅'); haptic(20); }
+      if (state === 'done' && d.sent > 0) {
+        // Rekap di spreadsheet disusun ulang oleh trigger tiap 5 menit, jadi
+        // jeda singkat itu wajar dan bukan tanda data gagal masuk.
+        toast(`${d.sent} data terkirim · rekap spreadsheet menyusul ±5 menit`, 'ok', '✅');
+        haptic(20);
+      }
       if (state === 'error') toast('Gagal kirim, akan dicoba lagi otomatis', 'warn', '⏳');
       if (state === 'offline') { /* badge saja */ }
       refreshStats();

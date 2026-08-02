@@ -8,11 +8,13 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import url from 'node:url';
 import { webcrypto } from 'node:crypto';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import 'fake-indexeddb/auto';
 
-const APP = process.env.APP_DIR || path.resolve(new URL('..', import.meta.url).pathname);
+// fileURLToPath, bukan .pathname — di Windows .pathname memberi "/D:/..."
+const APP = process.env.APP_DIR || path.resolve(url.fileURLToPath(new URL('..', import.meta.url)));
 const BASE = process.env.BASE || 'http://localhost:3000';
 
 const results = [];
@@ -40,7 +42,11 @@ window.IDBKeyRange = globalThis.IDBKeyRange;
 Object.defineProperty(window, 'crypto', { value: webcrypto, configurable: true });
 window.isSecureContext = true;
 window.fetch = (...a) => fetch(...a);
-window.Blob = globalThis.Blob;
+// Blob dibungkus supaya isi berkas yang diunduh bisa diperiksa, bukan hanya namanya
+const blobTerakhir = { isi: '' };
+window.Blob = class extends globalThis.Blob {
+  constructor(bagian, opsi) { super(bagian, opsi); blobTerakhir.isi = bagian.join(''); }
+};
 // jsdom versi baru tidak lagi memasang TextEncoder/TextDecoder di window
 window.TextEncoder = globalThis.TextEncoder;
 window.TextDecoder = globalThis.TextDecoder;
@@ -190,6 +196,24 @@ const raw = await new Promise(res => {
 check('Data lokal terenkripsi (nama guide tidak terbaca mentah)',
   raw.enc === true && !JSON.stringify(raw).includes('Wayan'));
 
+// Kunci harus punya salinan di IndexedDB, berdampingan dengan datanya. Kalau
+// kunci hanya ada di localStorage, sekali localStorage dibersihkan browser
+// SELURUH penilaian lama berubah jadi "(data rusak)" walau isinya masih utuh.
+{
+  const kunciMeta = await new Promise(res => {
+    const r = window.indexedDB.open('besakih-guide-eval');
+    r.onsuccess = () => {
+      const t = r.result.transaction('meta', 'readonly');
+      t.objectStore('meta').get('cryptoKey').onsuccess = e => res(e.target.result);
+    };
+  });
+  const kunciLocal = window.localStorage.getItem('besakih.cryptoKey');
+  check('Kunci enkripsi punya salinan di IndexedDB (tahan localStorage dibersihkan)',
+    !!(kunciMeta && kunciMeta.v && kunciMeta.v.k) &&
+    JSON.stringify(kunciMeta.v) === JSON.stringify(JSON.parse(kunciLocal)),
+    kunciMeta && kunciMeta.v ? 'salinan cocok dengan localStorage' : 'salinan tidak ada');
+}
+
 /* ---------- AC-5 sync ---------- */
 await window.Sync.syncNow({ force: true });
 await sleep(600);
@@ -206,6 +230,28 @@ setVal($('#guideInput'), 'Nama Tidak Terdaftar');
 $('#formEval').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
 await sleep(300);
 check('Guide tidak valid ditolak (tidak tersimpan)', (await window.DB.counts()).total === 1);
+
+// Ketikan ambigu tidak boleh ditebak: "Darta" cocok untuk 14 nama, dan menebak
+// yang pertama berarti penilaian tercatat atas nama orang yang salah.
+setVal($('#guideInput'), 'Darta');
+$('#formEval').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+await sleep(300);
+check('Nama ambigu tidak disimpan diam-diam ke guide pertama yang mirip',
+  (await window.DB.counts()).total === 1);
+check('Kandidat nama yang mungkin dimaksud ditawarkan',
+  !$('#guideAmbigu').hidden && $('#guideAmbigu').textContent.includes('Maksud Anda'),
+  $('#guideAmbigu').textContent.slice(0, 60));
+check('#guideCount tidak ikut terhapus saat kandidat tampil', !!$('#guideCount'));
+
+// Hitungan "Total Hari Ini" harus memakai tanggal setempat, bukan potongan ISO
+{
+  const lokal = window.DB.tanggalLokal;
+  const p = n => String(n).padStart(2, '0');
+  const d = new Date('2026-08-02T23:30:00.000Z');   // 3 Agustus 07.30 di WITA
+  check('tanggalLokal() memakai zona perangkat, bukan potongan ISO/UTC',
+    lokal(d.toISOString()) === `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
+    `${d.toISOString().slice(0, 10)} (UTC) → ${lokal(d.toISOString())} (setempat)`);
+}
 
 setVal($('#guideInput'), 'I Wayan Ardana');
 $('#formEval').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
@@ -250,11 +296,42 @@ check('Filter "Tertunda" bekerja', $$('#historyList .card').length === 0);
 click($('.chip[data-filter=synced]')); await sleep(300);
 check('Filter "Terkirim" bekerja', $$('#historyList .card').length === 2);
 
-/* ---------- Export CSV ---------- */
+/* ---------- Export rekap CSV ---------- */
 downloads.length = 0;
+blobTerakhir.isi = '';
 click($('#btnExportCsv'));
-await sleep(300);
-check('Export CSV menghasilkan file', downloads.length === 1 && /\.csv$/.test(downloads[0]), downloads[0] || '-');
+await sleep(400);
+check('Export rekap menghasilkan file', downloads.length === 1 && /^rekap-penilaian-.*\.csv$/.test(downloads[0]),
+  downloads[0] || '-');
+
+const csv = blobTerakhir.isi;
+const barisCsv = csv.split('\r\n');
+// DUMP_CSV=1 mencetak isi berkasnya, berguna saat menyetel format ekspor
+if (process.env.DUMP_CSV) console.log('\n----- isi rekap-penilaian.csv -----\n' + csv.replace(/^﻿/, '') + '\n-----\n');
+// Excel berbahasa Indonesia memakai ';' sebagai pemisah daftar; tanpa penanda
+// ini seluruh berkas menumpuk di satu kolom saat dibuka.
+check('CSV memakai pemisah yang dikenali Excel Indonesia',
+  barisCsv[0] === '﻿sep=;' || barisCsv[0] === 'sep=;', JSON.stringify(barisCsv[0]));
+check('Rekap memuat bagian per guide, per pos, dan per tanggal',
+  ['REKAP HARIAN PER GUIDE', 'REKAP PER POS PEMERIKSAAN', 'REKAP PER TANGGAL', 'RINCIAN SEMUA PENILAIAN']
+    .every(j => csv.includes(j)));
+check('Rekap mencantumkan nama guide yang dinilai perangkat ini',
+  csv.includes('I Wayan Ardana'), csv.split('\r\n').find(b => b.includes('I Wayan Ardana')) || '-');
+check('Rincian membawa waktu UTC & evaluationId untuk cross-check ke spreadsheet',
+  csv.includes('Waktu (UTC, sama dgn spreadsheet)') &&
+  /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(csv));
+check('Angka tidak dikutip agar langsung bisa dijumlah di Excel',
+  !/;"[01]"/.test(csv));
+
+// Nilai entri yang tidak terbaca tidak boleh ikut dihitung sebagai 0
+{
+  const semua = await window.DB.all();
+  const jmlBaik = semua.filter(e => !e.corrupt).length;
+  const barisRincian = csv.slice(csv.indexOf('RINCIAN SEMUA PENILAIAN')).split('\r\n')
+    .filter(b => /^\d{4}-\d{2}-\d{2};/.test(b));
+  check('Rincian memuat semua entri yang terbaca',
+    barisRincian.length === jmlBaik, `${barisRincian.length} baris untuk ${jmlBaik} entri`);
+}
 
 downloads.length = 0;
 const navSet = $$('.navitem').find(n => n.dataset.nav === 'pengaturan');

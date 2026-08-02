@@ -2,7 +2,7 @@
    sw.js — Service Worker (PRD AC-8, §5 ketersediaan 100% offline)
    Strategi: cache-first untuk app shell, network-only untuk /api/*
    ========================================================= */
-const CACHE = 'besakih-guide-v1.5.0';
+const CACHE = 'besakih-guide-v1.6.0';
 const SHELL = [
   './',
   './index.html',
@@ -39,6 +39,12 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(req.url);
 
+  // Permintaan ke host lain (mis. Web App Google Apps Script) dilepas apa
+  // adanya ke jaringan. Sebelumnya permintaan ini ikut masuk jalur app shell,
+  // dan saat jaringan putus balasannya adalah index.html — aplikasi lalu
+  // mencoba membacanya sebagai JSON dan gagal dengan pesan yang membingungkan.
+  if (url.origin !== self.location.origin) return;
+
   // API tidak pernah di-cache: harus selalu ke jaringan.
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(fetch(req).catch(() => new Response(
@@ -52,12 +58,18 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(req).then(cached => {
       const network = fetch(req).then(res => {
-        if (res && res.status === 200 && url.origin === self.location.origin) {
+        if (res && res.status === 200) {
           const copy = res.clone();
           caches.open(CACHE).then(c => c.put(req, copy));
         }
         return res;
-      }).catch(() => cached || caches.match('./index.html'));
+      }).catch(() => {
+        if (cached) return cached;
+        // index.html hanya pantas sebagai pengganti untuk perpindahan halaman.
+        // Untuk berkas data (mis. guides.json) balasan HTML justru menyesatkan.
+        if (req.mode === 'navigate') return caches.match('./index.html');
+        return new Response('', { status: 504, statusText: 'offline' });
+      });
       return cached || network;
     })
   );

@@ -1,6 +1,6 @@
 {
   "name": "penilaian-guide-besakih",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "PWA offline-first untuk penilaian guide (Uniform, ID-Card, Review) di tiga pos pemeriksaan Kawasan Besakih",
   "private": true,
   "type": "commonjs",

@@ -9,7 +9,8 @@
  *  2. Menu Extensions (Ekstensi) → Apps Script
  *  3. Hapus isi bawaan, tempel SELURUH file ini, lalu simpan (Ctrl+S)
  *  4. Pilih fungsi "setup" di dropdown, tekan Run. Setujui izin saat diminta.
- *     → Tab Guides, Evaluations, dan Petunjuk akan dibuat otomatis.
+ *     → Tab Guides, Evaluations, dan Petunjuk dibuat otomatis, DAN pembaruan
+ *       rekap otomatis langsung dinyalakan.
  *  5. Deploy → New deployment → Web app
  *        Execute as     : Me
  *        Who has access : Anyone
@@ -20,6 +21,19 @@
  *  Kalau script ini diubah, deploy ulang lewat
  *  Deploy → Manage deployments → Edit (ikon pensil) → Version: New version
  *  supaya URL-nya TIDAK berubah.
+ *
+ *  ------------------------------------------------------------
+ *  KALAU HASIL DARI LAPANGAN TIDAK TERLIHAT DI SPREADSHEET
+ *
+ *  Yang ditulis aplikasi adalah tab Evaluations. Tab "Rekap ..." disusun
+ *  belakangan oleh trigger, jadi tab rekap yang belum diperbarui akan
+ *  terlihat kosong walaupun datanya sudah masuk.
+ *
+ *  1. Lihat tab Evaluations — kalau baris baru ada di sana, data AMAN.
+ *  2. Cek cap "Diperbarui: ..." di pojok kanan atas tiap tab rekap.
+ *  3. Menu Penilaian Guide → "Periksa Kesehatan Data" untuk menyusun ulang
+ *     rekap sekarang juga sekaligus melihat apakah ada baris yang tercecer.
+ *  4. Kalau trigger terhitung 0: menu → "Nyalakan Pembaruan Otomatis".
  * ============================================================
  */
 
@@ -30,6 +44,15 @@ var SHEET_INFO    = 'Petunjuk';
 var HEADER_EVAL   = ['evaluationId', 'timestamp', 'pos', 'guideId', 'guideName',
                      'uniform', 'idCard', 'review', 'catatan', 'receivedAt'];
 var HEADER_GUIDES = ['guideId', 'guideName', 'kategori', 'regu', 'aktif'];
+
+// Batas wajar, disamakan dengan aplikasi supaya kiriman aneh tidak masuk rekap.
+var REVIEW_MAKS   = 20;
+var CATATAN_MAKS  = 500;
+var BATCH_MAKS    = 200;
+
+// Bulan yang perlu dirangkum ulang, dititipkan oleh doPost dan dikerjakan
+// oleh trigger `rekapOtomatis`. Lihat bagian "Pembaruan otomatis".
+var PROP_TERTUNDA = 'rekapTertunda';
 
 var GUIDES_AWAL = [
   ['G-001', 'Gusti Alit Astawa', 'Asing', 'A1', true],
@@ -392,6 +415,14 @@ function setup() {
       ['                  Isi kolom aktif dengan FALSE untuk menonaktifkan tanpa menghapus.'],
       ['Tab Evaluations : hasil penilaian dari lapangan — DIISI OTOMATIS oleh aplikasi.'],
       ['                  Jangan mengubah atau menghapus baris di tab ini.'],
+      ['Tab Rekap ...   : ringkasan bulanan, DISUSUN ULANG oleh trigger tiap 5 menit.'],
+      ['                  Boleh dicoret-coret; isinya ditimpa lagi saat rekap disusun.'],
+      [''],
+      ['KALAU HASIL TIDAK TERLIHAT'],
+      ['- Yang paling dulu terisi adalah tab Evaluations. Cek ke sana lebih dulu.'],
+      ['- Tiap tab rekap punya cap "Diperbarui: ..." di pojok kanan atas.'],
+      ['  Kalau capnya lama, rekapnya memang belum disusun ulang — bukan datanya hilang.'],
+      ['- Menu "Penilaian Guide" → "Periksa Kesehatan Data" menyusun ulang sekarang juga.'],
       [''],
       ['CATATAN PENTING'],
       ['- Jangan menulis URL /exec di repositori GitHub yang bersifat publik.'],
@@ -411,7 +442,19 @@ function setup() {
     if (s && ss.getSheets().length > 1 && s.getLastRow() === 0) ss.deleteSheet(s);
   });
 
-  return 'Setup selesai. Lanjut ke Deploy → New deployment → Web app.';
+  // Pembaruan rekap otomatis dipasang di sini juga. Sebelumnya ini langkah
+  // terpisah yang mudah terlewat — akibatnya tab rekap tidak pernah diperbarui
+  // dan hasil dari lapangan terlihat "tidak masuk" padahal datanya ada.
+  var otomatis;
+  try {
+    pasangTriggerHarian();
+    otomatis = 'Pembaruan rekap otomatis: aktif (tiap 5 menit + tiap malam).';
+  } catch (e) {
+    otomatis = 'Pembaruan rekap otomatis BELUM aktif (' + e + ').\n' +
+               'Jalankan menu Penilaian Guide → Nyalakan Pembaruan Otomatis.';
+  }
+
+  return 'Setup selesai. ' + otomatis + '\nLanjut ke Deploy → New deployment → Web app.';
 }
 
 /**
@@ -513,6 +556,11 @@ function doPost(e) {
   var items = (body && Object.prototype.toString.call(body.evaluations) === '[object Array]')
     ? body.evaluations : [body];
 
+  if (items.length > BATCH_MAKS) {
+    return json_({ accepted: [], rejected: [{ evaluationId: null,
+      errors: ['maksimal ' + BATCH_MAKS + ' entri per kiriman'] }] });
+  }
+
   var accepted = [], rejected = [];
 
   // Kunci: mencegah dua pos menulis ke baris yang sama secara bersamaan.
@@ -533,10 +581,15 @@ function doPost(e) {
       for (var i = 0; i < kol.length; i++) idAda[String(kol[i][0])] = true;
     }
 
-    var baris = [];
+    // Nama guide diambil dari tab Guides, bukan dari kiriman aplikasi: kalau
+    // perangkat memakai daftar guide lama, nama yang salah akan membuat baris
+    // itu tidak pernah cocok dengan siapa pun di rekap.
+    var namaResmi = petaGuides_();
+
+    var baris = [], bulanTersentuh = {};
     for (var j = 0; j < items.length; j++) {
       var it = items[j];
-      var errs = validasi_(it);
+      var errs = validasi_(it, namaResmi);
       if (errs.length) {
         rejected.push({ evaluationId: (it && it.evaluationId) || null, errors: errs });
         continue;
@@ -545,25 +598,30 @@ function doPost(e) {
         accepted.push({ evaluationId: it.evaluationId, synced: true, duplicate: true });
         continue;
       }
+      var gid = String(it.guideId).trim();
       baris.push([
         String(it.evaluationId),
         String(it.timestamp),
         Number(it.pos),
-        String(it.guideId),
-        String(it.guideName),
+        gid,
+        namaResmi[gid] || String(it.guideName),
         it.criteria.uniform ? 1 : 0,
         it.criteria.idCard ? 1 : 0,
-        Math.max(0, Number(it.criteria.review) || 0),
-        String(it.catatan || ''),
+        Math.min(REVIEW_MAKS, Math.max(0, Number(it.criteria.review) || 0)),
+        String(it.catatan || '').slice(0, CATATAN_MAKS),
         new Date().toISOString()
       ]);
       idAda[String(it.evaluationId)] = true;
+      bulanTersentuh[kodeBulan_(new Date(it.timestamp))] = true;
       accepted.push({ evaluationId: it.evaluationId, synced: true, duplicate: false });
     }
 
     if (baris.length) {
       sh.getRange(sh.getLastRow() + 1, 1, baris.length, HEADER_EVAL.length).setValues(baris);
       SpreadsheetApp.flush();
+      // Titipkan ke trigger: rekap harus disusun ulang. Rekapnya TIDAK dibangun
+      // di sini supaya balasan ke aplikasi tetap cepat (lihat rekapOtomatis).
+      tandaiRekapTertunda_(Object.keys(bulanTersentuh));
     }
   } catch (err) {
     // Gagal menulis → jangan balas "accepted", supaya aplikasi menahan data
@@ -578,12 +636,21 @@ function doPost(e) {
 
 /* ================= Validasi ================= */
 
-function validasi_(it) {
+/**
+ * @param {Object=} namaResmi peta guideId -> guideName dari tab Guides.
+ *   Bila diberikan, guideId yang tidak terdaftar akan ditolak — baris seperti
+ *   itu tidak akan pernah muncul di rekap, jadi lebih baik ditolak sejak awal
+ *   supaya aplikasi menahannya dan petugas tahu ada yang salah.
+ */
+function validasi_(it, namaResmi) {
   var errs = [];
   if (!it || typeof it !== 'object') return ['body bukan objek'];
   if (!it.evaluationId) errs.push('evaluationId wajib');
   if (!it.guideId)      errs.push('guideId wajib');
   if (!it.guideName)    errs.push('guideName wajib');
+  if (it.guideId && namaResmi && !namaResmi[String(it.guideId).trim()]) {
+    errs.push('guideId "' + it.guideId + '" tidak ada di tab Guides');
+  }
   if ([1, 2, 3].indexOf(Number(it.pos)) === -1) errs.push('pos harus 1, 2, atau 3');
   if (!it.timestamp || isNaN(Date.parse(it.timestamp))) errs.push('timestamp harus ISO8601');
   if (!it.criteria || typeof it.criteria !== 'object') {
@@ -596,6 +663,29 @@ function validasi_(it) {
     if (!isFinite(rv) || rv < 0) errs.push('criteria.review harus angka >= 0');
   }
   return errs;
+}
+
+/**
+ * Peta guideId -> guideName dari tab Guides (termasuk yang nonaktif, supaya
+ * penilaian atas guide yang baru dinonaktifkan tetap bisa masuk).
+ * Disimpan sebentar di cache agar tidak dibaca ulang tiap kiriman.
+ */
+function petaGuides_() {
+  var cache = null;
+  try { cache = CacheService.getScriptCache(); } catch (e) {}
+  if (cache) {
+    var simpan = cache.get('petaGuides');
+    if (simpan) { try { return JSON.parse(simpan); } catch (e) {} }
+  }
+
+  var rows = sheet_(SHEET_GUIDES).getDataRange().getValues().slice(1);
+  var peta = {};
+  for (var i = 0; i < rows.length; i++) {
+    var id = String(rows[i][0] || '').trim();
+    if (id) peta[id] = String(rows[i][1] || '').trim();
+  }
+  if (cache) { try { cache.put('petaGuides', JSON.stringify(peta), 300); } catch (e) {} }
+  return peta;
 }
 
 
@@ -611,6 +701,7 @@ function resetGuides() {
   pasangHeader_(g, HEADER_GUIDES, [90, 230, 130, 110, 70]);
   g.getRange(2, 1, GUIDES_AWAL.length, HEADER_GUIDES.length).setValues(GUIDES_AWAL);
   SpreadsheetApp.flush();
+  try { CacheService.getScriptCache().remove('petaGuides'); } catch (e) {}
   var pesan = GUIDES_AWAL.length + ' guide dimuat ke tab Guides.';
   Logger.log(pesan);
   return pesan;
@@ -724,13 +815,30 @@ function rangkumBulan_(bulan) {
 
 function namaTabRekap_(kode, bulan) { return 'Rekap ' + kode + ' ' + bulan; }
 
-/** Kosongkan tab bila sudah ada, atau buat baru. */
+/**
+ * Kosongkan tab bila sudah ada, atau buat baru.
+ *
+ * Sel gabungan TIDAK ikut hilang oleh clear(), padahal jumlah kolom tanggal
+ * berubah tiap hari. Sisa gabungan dari susunan kemarin bisa menggeser atau
+ * menelan nilai yang ditulis hari ini, jadi dilepas dulu.
+ */
 function siapkanTab_(nama) {
   var ss = ss_();
   var sh = ss.getSheetByName(nama);
-  if (sh) { sh.clear(); sh.clearFormats(); }
-  else { sh = ss.insertSheet(nama); }
+  if (sh) {
+    sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart();
+    sh.clear();
+    sh.clearFormats();
+  } else {
+    sh = ss.insertSheet(nama);
+  }
   return sh;
+}
+
+/** Label "kapan rekap ini dibangun", supaya rekap basi langsung ketahuan. */
+function capWaktu_() {
+  return 'Diperbarui: ' +
+    Utilities.formatDate(new Date(), ss_().getSpreadsheetTimeZone(), 'd MMM yyyy HH:mm');
 }
 
 /** Bangun satu tab rekap untuk satu regu. */
@@ -759,6 +867,10 @@ function bangunRekapRegu_(info, bulan, ringkasan, guides) {
   sh.getRange(1, 1, 1, jmlKolom)
     .setFontWeight('bold').setFontSize(12)
     .setFontColor('#FFFFFF').setBackground('#0B5D3B');
+  // Cap waktu di ujung kanan baris judul — ikut terbeku bersama baris 1..3,
+  // jadi selalu kelihatan walau digulir jauh ke bawah.
+  sh.getRange(1, jmlKolom).setValue(capWaktu_())
+    .setFontWeight('normal').setFontSize(9).setHorizontalAlignment('right');
 
   // --- baris 2: tanggal ---
   sh.getRange(2, 1).setValue('REGU: ' + info.nomor + ' (' + info.kategori + ')')
@@ -783,6 +895,7 @@ function bangunRekapRegu_(info, bulan, ringkasan, guides) {
     .setHorizontalAlignment('center');
 
   // --- baris 5 dst: data ---
+  var terisi = 0;                    // berapa sel harian yang benar-benar berisi
   if (anggota.length) {
     var baris = [];
     for (var a = 0; a < anggota.length; a++) {
@@ -791,7 +904,7 @@ function bangunRekapRegu_(info, bulan, ringkasan, guides) {
       var h = ringkasan.harian[g.guideId] || {};
       for (var d = 0; d < tanggal.length; d++) {
         var sel = h[tanggal[d]];
-        if (sel) row.push(sel.uniform, sel.idCard, sel.review);
+        if (sel) { row.push(sel.uniform, sel.idCard, sel.review); terisi++; }
         else row.push('', '', '');   // kosong = tidak bertugas / tidak diperiksa
       }
       row.push('', '', '');          // tempat rumus TOTAL
@@ -823,7 +936,7 @@ function bangunRekapRegu_(info, bulan, ringkasan, guides) {
   sh.setFrozenColumns(1);
   sh.setColumnWidth(1, 210);
   for (var c = 2; c <= jmlKolom; c++) sh.setColumnWidth(c, 58);
-  return anggota.length;
+  return { anggota: anggota.length, terisi: terisi, tanggal: tanggal.length };
 }
 
 /** Nomor kolom -> huruf (1 -> A, 27 -> AA). */
@@ -850,6 +963,8 @@ function bangunRekapPerPos_(bulan, ringkasan, guides) {
   sh.getRange(1, 1, 1, head.length)
     .setFontWeight('bold').setFontSize(12)
     .setFontColor('#FFFFFF').setBackground('#0B5D3B');
+  sh.getRange(1, head.length).setValue(capWaktu_())
+    .setFontWeight('normal').setFontSize(9).setHorizontalAlignment('right');
   sh.getRange(2, 1, 1, head.length).setValues([head])
     .setFontWeight('bold').setFontColor('#FFFFFF').setBackground('#0B5D3B')
     .setHorizontalAlignment('center');
@@ -887,21 +1002,35 @@ function bangunRekapPerPos_(bulan, ringkasan, guides) {
 function bangunRekap(bulan) {
   bulan = bulan || kodeBulan_(new Date());
   var lock = LockService.getScriptLock();
-  try { lock.waitLock(30000); } catch (e) { return 'Sedang dipakai proses lain, coba lagi.'; }
+  // Dilempar, bukan dikembalikan sebagai teks: pemanggilnya (rekapOtomatis)
+  // harus tahu rekap TIDAK jadi disusun supaya bulan ini ditandai ulang.
+  try { lock.waitLock(30000); } catch (e) { throw new Error('SIBUK: sedang dipakai proses lain'); }
 
   try {
     var guides = bacaGuides_();
     var ringkasan = rangkumBulan_(bulan);
-    var hasil = [];
+    var hasil = [], totalTerisi = 0;
     for (var i = 0; i < REGU_INFO.length; i++) {
       var n = bangunRekapRegu_(REGU_INFO[i], bulan, ringkasan, guides);
-      hasil.push(REGU_INFO[i].kode + ':' + n);
+      hasil.push(REGU_INFO[i].kode + ':' + n.anggota + '/' + n.terisi);
+      totalTerisi += n.terisi;
     }
     var nPos = bangunRekapPerPos_(bulan, ringkasan, guides);
     SpreadsheetApp.flush();
+
+    // Pemeriksaan mandiri: ada penilaian bulan ini tapi tidak satu pun nilai
+    // harian mendarat di tab regu = ada yang salah (mis. guideId di tab
+    // Evaluations tidak ada di tab Guides). Lebih baik berteriak daripada
+    // menampilkan rekap kosong yang disangka "memang belum ada data".
+    var peringatan = '';
+    if (ringkasan.tanggal.length && totalTerisi === 0) {
+      peringatan = ' ⚠️ ADA PENILAIAN TAPI TIDAK ADA YANG MASUK REKAP —' +
+                   ' periksa apakah guideId di tab Evaluations terdaftar di tab Guides.';
+    }
+
     var pesan = 'Rekap ' + bulan + ' selesai. ' + hasil.join(' ') +
-                ' | tanggal terisi: ' + ringkasan.tanggal.length +
-                ' | guide dinilai: ' + nPos;
+                ' (anggota/terisi) | tanggal terisi: ' + ringkasan.tanggal.length +
+                ' | guide dinilai: ' + nPos + peringatan;
     Logger.log(pesan);
     return pesan;
   } finally {
@@ -909,7 +1038,47 @@ function bangunRekap(bulan) {
   }
 }
 
-/** Dipanggil trigger harian. */
+/* ================= Pembaruan otomatis ================= */
+/**
+ * Rekap TIDAK dibangun langsung di dalam doPost: menyusun empat tab regu
+ * memakan waktu belasan detik, sedangkan aplikasi di lapangan menunggu balasan
+ * dan akan menganggap penilaian gagal bila terlalu lama. Jadi doPost hanya
+ * menitipkan "bulan mana yang berubah", lalu trigger tiap 5 menit yang
+ * mengerjakannya.
+ */
+function tandaiRekapTertunda_(daftarBulan) {
+  if (!daftarBulan || !daftarBulan.length) return;
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var kumpul = {};
+    String(props.getProperty(PROP_TERTUNDA) || '').split(',').forEach(function (b) {
+      if (b) kumpul[b] = true;
+    });
+    daftarBulan.forEach(function (b) { if (b) kumpul[b] = true; });
+    props.setProperty(PROP_TERTUNDA, Object.keys(kumpul).join(','));
+  } catch (e) {
+    Logger.log('gagal menandai rekap tertunda: ' + e);
+  }
+}
+
+/** Dijalankan trigger tiap 5 menit. Tidak melakukan apa pun bila tak ada perubahan. */
+function rekapOtomatis() {
+  var props;
+  try { props = PropertiesService.getScriptProperties(); } catch (e) { return; }
+  var tertunda = String(props.getProperty(PROP_TERTUNDA) || '').split(',')
+    .filter(function (b) { return b; });
+  if (!tertunda.length) return;
+
+  // Dibersihkan lebih dulu supaya penilaian yang masuk saat rekap sedang
+  // disusun tetap tercatat sebagai perubahan baru untuk putaran berikutnya.
+  props.deleteProperty(PROP_TERTUNDA);
+  for (var i = 0; i < tertunda.length; i++) {
+    try { bangunRekap(tertunda[i]); }
+    catch (e) { Logger.log('rekapOtomatis ' + tertunda[i] + ': ' + e); tandaiRekapTertunda_([tertunda[i]]); }
+  }
+}
+
+/** Dipanggil trigger harian — jaring pengaman kalau trigger 5 menit terlewat. */
 function rekapHarian() {
   bangunRekap();
 }
@@ -922,32 +1091,95 @@ function onOpen() {
     .addItem('Perbarui Rekap Bulan Ini', 'menuRekapSekarang')
     .addItem('Perbarui Rekap Bulan Lalu', 'menuRekapBulanLalu')
     .addSeparator()
-    .addItem('Pasang Pembaruan Otomatis Tiap Malam', 'pasangTriggerHarian')
+    .addItem('Nyalakan Pembaruan Otomatis', 'pasangTriggerHarian')
+    .addItem('Periksa Kesehatan Data', 'menuPeriksa')
     .addToUi();
 }
 
+/** Bungkus supaya kegagalan tampil sebagai pesan, bukan dialog error mentah. */
+function jalankanRekap_(bulan) {
+  try { return bangunRekap(bulan); }
+  catch (e) { return 'Rekap tidak jadi disusun: ' + e.message; }
+}
+
 function menuRekapSekarang() {
-  SpreadsheetApp.getUi().alert(bangunRekap());
+  SpreadsheetApp.getUi().alert(jalankanRekap_());
 }
 
 function menuRekapBulanLalu() {
   var d = new Date();
   d.setDate(1);
   d.setMonth(d.getMonth() - 1);
-  SpreadsheetApp.getUi().alert(bangunRekap(kodeBulan_(d)));
+  SpreadsheetApp.getUi().alert(jalankanRekap_(kodeBulan_(d)));
 }
 
-/** Pasang trigger harian 23.00 (hanya sekali; yang lama dibuang dulu). */
+/**
+ * Pasang dua trigger sekaligus (yang lama dibuang dulu agar tidak menumpuk):
+ *   - tiap 5 menit : menyusun ulang rekap HANYA bila ada penilaian baru
+ *   - tiap malam   : jaring pengaman kalau trigger 5 menit sempat terlewat
+ */
 function pasangTriggerHarian() {
+  var otomatis = ['rekapHarian', 'rekapOtomatis'];
   var lama = ScriptApp.getProjectTriggers();
   for (var i = 0; i < lama.length; i++) {
-    if (lama[i].getHandlerFunction() === 'rekapHarian') ScriptApp.deleteTrigger(lama[i]);
+    if (otomatis.indexOf(lama[i].getHandlerFunction()) > -1) ScriptApp.deleteTrigger(lama[i]);
   }
+  ScriptApp.newTrigger('rekapOtomatis').timeBased().everyMinutes(5).create();
   ScriptApp.newTrigger('rekapHarian').timeBased().atHour(23).everyDays(1).create();
-  var pesan = 'Pembaruan otomatis dipasang: setiap hari sekitar pukul 23.00.';
+
+  var pesan = 'Pembaruan otomatis menyala.\n\n' +
+              '• Rekap disusun ulang paling lambat 5 menit setelah penilaian masuk.\n' +
+              '• Ditambah satu penyusunan menyeluruh tiap malam pukul 23.00.';
   try { SpreadsheetApp.getUi().alert(pesan); } catch (e) {}
   Logger.log(pesan);
   return pesan;
+}
+
+/**
+ * Laporan singkat kondisi data — dipakai saat rekap terlihat kosong padahal
+ * penilaian sudah dikirim dari lapangan.
+ */
+function periksaKesehatan() {
+  var ev = sheet_(SHEET_EVAL);
+  var last = ev.getLastRow();
+  var jml = Math.max(0, last - 1);
+  var peta = petaGuides_();
+  var bulanIni = kodeBulan_(new Date());
+
+  var yatim = {}, bulanan = {}, terbaru = '';
+  if (jml) {
+    var data = ev.getRange(2, 1, jml, HEADER_EVAL.length).getValues();
+    for (var i = 0; i < data.length; i++) {
+      var gid = String(data[i][3]).trim();
+      if (!peta[gid]) yatim[gid] = (yatim[gid] || 0) + 1;
+      var w = new Date(data[i][1]);
+      if (!isNaN(w.getTime())) {
+        var b = kodeBulan_(w);
+        bulanan[b] = (bulanan[b] || 0) + 1;
+        if (String(data[i][1]) > terbaru) terbaru = String(data[i][1]);
+      }
+    }
+  }
+
+  var idYatim = Object.keys(yatim);
+  var baris = [
+    'Total penilaian tersimpan : ' + jml,
+    'Penilaian bulan ini (' + bulanIni + ') : ' + (bulanan[bulanIni] || 0),
+    'Penilaian terakhir masuk  : ' + (terbaru || '—'),
+    'Trigger otomatis aktif    : ' + ScriptApp.getProjectTriggers()
+      .filter(function (t) { return t.getHandlerFunction() === 'rekapOtomatis'; }).length + ' buah',
+    'Guide terdaftar di tab Guides : ' + Object.keys(peta).length,
+    idYatim.length
+      ? '⚠️ guideId tidak dikenal  : ' + idYatim.join(', ') + ' — baris ini tidak akan muncul di rekap'
+      : '✅ Semua guideId dikenal — tidak ada baris yang tercecer'
+  ].join('\n');
+
+  Logger.log(baris);
+  return baris;
+}
+
+function menuPeriksa() {
+  SpreadsheetApp.getUi().alert(periksaKesehatan() + '\n\n' + jalankanRekap_());
 }
 
 /* ================= Uji mandiri (opsional) ================= */

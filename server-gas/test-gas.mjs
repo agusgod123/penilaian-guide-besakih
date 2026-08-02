@@ -6,9 +6,12 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import url from 'node:url';
 import vm from 'node:vm';
 
-const APP = process.env.APP_DIR || path.resolve(new URL('..', import.meta.url).pathname);
+// fileURLToPath, bukan .pathname — di Windows .pathname menghasilkan "/D:/..."
+// yang membuat path.resolve menempelkannya jadi "D:\D:\..." dan tes gagal jalan.
+const APP = process.env.APP_DIR || path.resolve(url.fileURLToPath(new URL('..', import.meta.url)));
 const kode = fs.readFileSync(path.join(APP, 'server-gas', 'Code.gs'), 'utf8');
 
 const hasil = [];
@@ -24,6 +27,8 @@ class FakeSheet {
     this.merges = []; this.frozenCols = 0;
   }
   getLastRow() { return this.data.length; }
+  getMaxRows() { return Math.max(this.data.length, 1000); }
+  getMaxColumns() { return 26; }
   getDataRange() { return this.getRange(1, 1, Math.max(this.data.length, 1), 20); }
   getRange(row, col, numRows = 1, numCols = 1) {
     const sh = this;
@@ -47,6 +52,12 @@ class FakeSheet {
       setValue(v) { return this.setValues([[v]]); },
       setFormulas(values) { return this.setValues(values); },
       merge() { sh.merges.push({ row, col, numRows, numCols }); return this; },
+      breakApart() {
+        sh.merges = sh.merges.filter(m =>
+          m.row + m.numRows - 1 < row || m.row > row + numRows - 1 ||
+          m.col + m.numCols - 1 < col || m.col > col + numCols - 1);
+        return this;
+      },
       setFontWeight() { return this; }, setFontColor() { return this; },
       setBackground() { return this; }, setHorizontalAlignment() { return this; },
       setFontSize() { return this; },
@@ -61,8 +72,8 @@ class FakeSheet {
 }
 
 class FakeSpreadsheet {
-  constructor() { this.sheets = [new FakeSheet('Sheet1')]; }
-  getSpreadsheetTimeZone() { return 'Asia/Makassar'; }
+  constructor() { this.sheets = [new FakeSheet('Sheet1')]; this.tz = 'Asia/Makassar'; }
+  getSpreadsheetTimeZone() { return this.tz; }
   getSheetByName(n) { return this.sheets.find(s => s.nama === n) || null; }
   insertSheet(n) { const s = new FakeSheet(n); this.sheets.push(s); return s; }
   getSheets() { return this.sheets; }
@@ -72,25 +83,48 @@ class FakeSpreadsheet {
 const doc = new FakeSpreadsheet();
 let lockDipegang = false;
 let gagalKunci = false;
+const props = new Map();
+let triggers = [];
 
 const sandbox = {
   SpreadsheetApp: {
     getActiveSpreadsheet: () => doc,
     flush() {},
-    getSpreadsheetTimeZone: () => 'Asia/Makassar',
+    getSpreadsheetTimeZone: () => doc.getSpreadsheetTimeZone(),
     getUi: () => { throw new Error('tidak ada UI di lingkungan uji'); },
   },
   Utilities: {
+    // Menghormati zona waktu betulan, seperti Apps Script. Versi lama tes ini
+    // memakai UTC apa pun zonanya, sehingga salah-hitung tanggal karena beda
+    // zona (mis. penilaian pagi di WITA) tidak akan pernah tertangkap di sini.
     formatDate(d, tz, pola) {
-      const p = n => String(n).padStart(2, '0');
-      if (pola === 'yyyy-MM') return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}`;
-      return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
+      const bagian = new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      }).formatToParts(d).reduce((o, p) => (o[p.type] = p.value, o), {});
+      if (pola === 'yyyy-MM') return `${bagian.year}-${bagian.month}`;
+      if (pola === 'yyyy-MM-dd') return `${bagian.year}-${bagian.month}-${bagian.day}`;
+      return `${bagian.day} ${bagian.month} ${bagian.year} ${bagian.hour}:${bagian.minute}`;
     },
   },
   ScriptApp: {
-    getProjectTriggers: () => [],
-    newTrigger: () => ({ timeBased: () => ({ atHour: () => ({ everyDays: () => ({ create() {} }) }) }) }),
-    deleteTrigger() {},
+    getProjectTriggers: () => triggers,
+    newTrigger: (fn) => {
+      const buat = () => { triggers.push({ getHandlerFunction: () => fn }); };
+      const tb = { atHour: () => tb, everyDays: () => tb, everyMinutes: () => tb, create: buat };
+      return { timeBased: () => tb };
+    },
+    deleteTrigger(t) { triggers = triggers.filter(x => x !== t); },
+  },
+  PropertiesService: {
+    getScriptProperties: () => ({
+      getProperty: k => (props.has(k) ? props.get(k) : null),
+      setProperty(k, v) { props.set(k, String(v)); return this; },
+      deleteProperty(k) { props.delete(k); return this; },
+    }),
+  },
+  CacheService: {
+    getScriptCache: () => { throw new Error('cache tidak tersedia di lingkungan uji'); },
   },
   ContentService: {
     MimeType: { JSON: 'json' },
@@ -305,7 +339,146 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     doc.getSheets().length === jmlTabSebelum &&
     doc.getSheetByName('Rekap A1 2026-07').getRange(5, 1, 1, 1).getValues()[0][0] === 'Gusti Alit Astawa');
 
+  // Cap waktu di ujung kanan baris judul — pembeda rekap segar vs rekap basi
+  const jmlKolomA1 = 1 + (2 + 1) * 3;
+  cek('Rekap membawa cap waktu "Diperbarui:"',
+    String(a1.getRange(1, jmlKolomA1, 1, 1).getValues()[0][0]).indexOf('Diperbarui:') === 0,
+    String(a1.getRange(1, jmlKolomA1, 1, 1).getValues()[0][0]));
+
+  // Sisa sel gabungan dari susunan kemarin tidak boleh menelan nilai hari ini
+  const a2 = doc.getSheetByName('Rekap A2 2026-07');
+  a2.merges.push({ row: 5, col: 2, numRows: 1, numCols: 3 });
+  sandbox.bangunRekap('2026-07');
+  cek('Sel gabungan sisa susunan lama dilepas sebelum rekap ditulis ulang',
+    !a2.merges.some(m => m.row === 5), `${a2.merges.length} gabungan tersisa`);
+
+  // Pemeriksaan mandiri: penilaian ada tapi guideId-nya tak dikenal
+  {
+    const simpan = ev.data.slice();
+    ev.data = [ev.data[0], ['x1', '2026-07-03T02:00:00.000Z', 1, 'G-TIDAK-ADA', '?', 1, 1, 1, '', '']];
+    const pesanAneh = sandbox.bangunRekap('2026-07');
+    cek('bangunRekap() memperingatkan bila tidak ada nilai yang masuk rekap',
+      pesanAneh.indexOf('TIDAK ADA YANG MASUK REKAP') > -1, pesanAneh.slice(-90));
+    ev.data = simpan;
+  }
+
   ev.data = [ev.data[0]];                       // bersihkan lagi untuk uji berikutnya
+}
+
+/* ---------------- Zona waktu & pembaruan otomatis ---------------- */
+{
+  const ev = doc.getSheetByName('Evaluations');
+  ev.data = [ev.data[0]];
+
+  // 2026-07-03T17:30Z = 4 Juli 01.30 WITA. Rekap harus memakai tanggal setempat,
+  // bukan tanggal UTC — kalau tidak, penilaian sore hari lompat ke hari lain.
+  ev.data.push(['tz1', '2026-07-03T17:30:00.000Z', 1, 'G-001', 'Gusti Alit Astawa', 1, 1, 2, '', '']);
+  sandbox.bangunRekap('2026-07');
+  const tzA1 = doc.getSheetByName('Rekap A1 2026-07');
+  cek('Tanggal rekap memakai zona waktu spreadsheet, bukan UTC',
+    String(tzA1.getRange(2, 2, 1, 1).getValues()[0][0]) === 'TGL: 4-7-2026',
+    String(tzA1.getRange(2, 2, 1, 1).getValues()[0][0]));
+
+  // POST harus menitipkan bulan yang berubah, lalu trigger yang menyusun rekap
+  props.clear();
+  triggers = [];
+  ev.data = [ev.data[0]];
+  const kirim = J(doPost({ postData: { contents: JSON.stringify({
+    evaluationId: 'auto-1', guideId: 'G-001', guideName: 'Gusti Alit Astawa', pos: 1,
+    timestamp: '2026-09-10T02:00:00.000Z',
+    criteria: { idCard: true, uniform: true, review: 3 },
+  }) } }));
+  cek('POST menitipkan bulan yang perlu dirangkum ulang',
+    kirim.accepted.length === 1 && props.get('rekapTertunda') === '2026-09',
+    `tertunda="${props.get('rekapTertunda')}"`);
+  cek('POST tidak membangun rekap sendiri (balasan tetap cepat)',
+    !doc.getSheetByName('Rekap A1 2026-09'));
+
+  sandbox.rekapOtomatis();
+  const sep = doc.getSheetByName('Rekap A1 2026-09');
+  cek('rekapOtomatis() menyusun rekap bulan yang tertunda',
+    !!sep && sep.getRange(5, 1, 1, 4).getValues()[0][0] === 'Gusti Alit Astawa' &&
+    sep.getRange(5, 2, 1, 3).getValues()[0].join(',') === '1,1,3',
+    sep ? sep.getRange(5, 1, 1, 4).getValues()[0].join(' | ') : 'tab tidak dibuat');
+  cek('rekapOtomatis() menghapus tanda setelah selesai', !props.has('rekapTertunda'));
+
+  const tabSebelum = doc.getSheets().length;
+  sandbox.rekapOtomatis();
+  cek('rekapOtomatis() diam saja bila tidak ada penilaian baru',
+    doc.getSheets().length === tabSebelum);
+
+  // Kalau kunci sedang dipegang proses lain, bulan itu harus DITANDAI ULANG —
+  // kalau tandanya hilang begitu saja, pembaruan rekapnya tidak pernah terjadi.
+  props.set('rekapTertunda', '2026-09');
+  gagalKunci = true;
+  sandbox.rekapOtomatis();
+  gagalKunci = false;
+  cek('Rekap yang gagal karena kunci ditandai ulang, bukan hilang',
+    props.get('rekapTertunda') === '2026-09', `tertunda="${props.get('rekapTertunda')}"`);
+  sandbox.rekapOtomatis();
+  cek('Percobaan berikutnya berhasil menyusun rekap', !props.has('rekapTertunda'));
+
+  // guideId asing harus ditolak, bukan diam-diam masuk lalu hilang dari rekap
+  const asing = J(doPost({ postData: { contents: JSON.stringify({
+    evaluationId: 'auto-2', guideId: 'G-999', guideName: 'Entah Siapa', pos: 1,
+    timestamp: '2026-09-10T02:00:00.000Z',
+    criteria: { idCard: true, uniform: true, review: 1 },
+  }) } }));
+  cek('guideId yang tidak ada di tab Guides ditolak',
+    asing.accepted.length === 0 &&
+    String(asing.rejected[0].errors).indexOf('tidak ada di tab Guides') > -1,
+    String(asing.rejected[0].errors));
+
+  // Nama dari perangkat berdaftar lama diperbaiki memakai tab Guides
+  J(doPost({ postData: { contents: JSON.stringify({
+    evaluationId: 'auto-3', guideId: 'G-002', guideName: 'Nama Salah Dari Aplikasi Lama', pos: 2,
+    timestamp: '2026-09-11T02:00:00.000Z',
+    criteria: { idCard: true, uniform: true, review: 1 },
+  }) } }));
+  const barisNama = ev.getRange(ev.getLastRow(), 1, 1, 10).getValues()[0];
+  cek('guideName ditulis ulang memakai nama resmi dari tab Guides',
+    barisNama[4] === 'I Gede Astawa', `tersimpan sebagai "${barisNama[4]}"`);
+
+  // Batas wajar
+  const batas = J(doPost({ postData: { contents: JSON.stringify({
+    evaluationId: 'auto-4', guideId: 'G-002', guideName: 'I Gede Astawa', pos: 2,
+    timestamp: '2026-09-11T02:00:00.000Z',
+    criteria: { idCard: true, uniform: true, review: 9999 }, catatan: 'x'.repeat(2000),
+  }) } }));
+  const barisBatas = ev.getRange(ev.getLastRow(), 1, 1, 10).getValues()[0];
+  cek('review & catatan dipangkas ke batas wajar',
+    batas.accepted.length === 1 && barisBatas[7] === 20 && barisBatas[8].length === 500,
+    `review=${barisBatas[7]} panjang catatan=${barisBatas[8].length}`);
+
+  const borongan = J(doPost({ postData: { contents: JSON.stringify({
+    evaluations: Array.from({ length: 201 }, (_, i) => ({
+      evaluationId: 'b' + i, guideId: 'G-001', guideName: 'Gusti Alit Astawa', pos: 1,
+      timestamp: '2026-09-11T02:00:00.000Z', criteria: { idCard: true, uniform: true, review: 0 },
+    })) }) } }));
+  cek('Kiriman borongan berlebihan ditolak', borongan.accepted.length === 0);
+
+  props.clear();
+  ev.data = [ev.data[0]];
+}
+
+/* ---------------- Pemeriksaan kesehatan & trigger ---------------- */
+{
+  triggers = [];
+  sandbox.pasangTriggerHarian();
+  const nama = triggers.map(t => t.getHandlerFunction()).sort().join(',');
+  cek('pasangTriggerHarian() memasang trigger 5 menit + harian',
+    nama === 'rekapHarian,rekapOtomatis', nama);
+
+  sandbox.pasangTriggerHarian();
+  cek('Trigger tidak menumpuk bila dipasang dua kali', triggers.length === 2, `${triggers.length} trigger`);
+
+  const ev = doc.getSheetByName('Evaluations');
+  ev.data = [ev.data[0], ['s1', '2026-09-01T02:00:00.000Z', 1, 'G-XXX', '?', 1, 1, 1, '', '']];
+  const laporan = sandbox.periksaKesehatan();
+  cek('periksaKesehatan() menunjuk guideId yang tercecer',
+    laporan.indexOf('G-XXX') > -1 && laporan.indexOf('Total penilaian tersimpan : 1') > -1,
+    laporan.split('\n').pop());
+  ev.data = [ev.data[0]];
 }
 
 /* ---------------- Migrasi skema lama ---------------- */

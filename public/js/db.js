@@ -21,16 +21,58 @@
   /* ---------------------- Enkripsi ---------------------- */
   const canCrypto = () => !!(global.crypto && global.crypto.subtle && global.isSecureContext !== false);
 
+  /**
+   * Kunci disimpan di DUA tempat: localStorage dan object store `meta` di
+   * IndexedDB yang sama dengan datanya.
+   *
+   * Penilaian ada di IndexedDB, sedangkan dulu kuncinya hanya di localStorage.
+   * Keduanya bisa dibersihkan browser secara terpisah — begitu localStorage
+   * hilang, kunci baru dibuat dan SELURUH penilaian lama berubah menjadi
+   * "(data rusak)" walau isinya sebenarnya masih utuh. Menyimpan salinan kunci
+   * berdampingan dengan datanya membuat keduanya hidup dan mati bersama.
+   */
+  async function bacaKunciTersimpan() {
+    let jwk = null;
+    try {
+      const saved = localStorage.getItem(KEY_STORAGE);
+      if (saved) jwk = JSON.parse(saved);
+    } catch { jwk = null; }
+
+    if (jwk) {
+      await simpanKunciKeMeta(jwk);         // pastikan salinan cadangan ada
+      return jwk;
+    }
+
+    // localStorage kosong — coba salinan yang berdampingan dengan data
+    try {
+      const rec = await tx('readonly', s => wrap(s.get('cryptoKey')), META);
+      if (rec && rec.v) {
+        try { localStorage.setItem(KEY_STORAGE, JSON.stringify(rec.v)); } catch {}
+        console.warn('[db] kunci enkripsi dipulihkan dari IndexedDB');
+        return rec.v;
+      }
+    } catch (e) { console.warn('[db] gagal membaca kunci cadangan', e); }
+
+    return null;
+  }
+
+  async function simpanKunciKeMeta(jwk) {
+    try { await tx('readwrite', s => wrap(s.put({ k: 'cryptoKey', v: jwk })), META); }
+    catch (e) { console.warn('[db] gagal menyimpan kunci cadangan', e); }
+  }
+
   async function getKey() {
     if (cryptoKey) return cryptoKey;
     if (!canCrypto()) return null;
     try {
-      const saved = localStorage.getItem(KEY_STORAGE);
-      if (saved) {
-        cryptoKey = await crypto.subtle.importKey('jwk', JSON.parse(saved), { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
+      const jwk = await bacaKunciTersimpan();
+      if (jwk) {
+        cryptoKey = await crypto.subtle.importKey('jwk', jwk, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
       } else {
         cryptoKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
-        localStorage.setItem(KEY_STORAGE, JSON.stringify(await crypto.subtle.exportKey('jwk', cryptoKey)));
+        const baru = await crypto.subtle.exportKey('jwk', cryptoKey);
+        try { localStorage.setItem(KEY_STORAGE, JSON.stringify(baru)); } catch {}
+        await simpanKunciKeMeta(baru);
       }
       return cryptoKey;
     } catch (e) {
@@ -144,14 +186,27 @@
       return (await DB.all()).filter(e => !e.synced && !e.corrupt);
     },
 
+    /**
+     * Tanggal setempat (bukan UTC) dari sebuah timestamp ISO.
+     * Bali ada di UTC+8: memotong 10 huruf pertama dari ISO membuat penilaian
+     * pukul 00.00–08.00 WITA terhitung sebagai "kemarin", sehingga angka
+     * "Total Hari Ini" di layar utama ikut salah sepanjang pagi.
+     */
+    tanggalLokal(iso) {
+      const d = iso ? new Date(iso) : new Date();
+      if (isNaN(d)) return String(iso || '').slice(0, 10);
+      const p = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    },
+
     async counts() {
       const all = await DB.all();
-      const today = new Date().toISOString().slice(0, 10);
+      const today = DB.tanggalLokal();
       return {
         total: all.length,
         pending: all.filter(e => !e.synced).length,
         synced: all.filter(e => e.synced).length,
-        today: all.filter(e => String(e.timestamp).slice(0, 10) === today).length,
+        today: all.filter(e => DB.tanggalLokal(e.timestamp) === today).length,
       };
     },
 

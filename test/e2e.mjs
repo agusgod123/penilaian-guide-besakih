@@ -183,7 +183,9 @@ await page.setOfflineMode(false);
 
 /* Ukuran aplikasi <= 5 MB */
 const { execSync } = await import('node:child_process');
-const appDir = process.env.APP_DIR || new URL('..', import.meta.url).pathname;
+const { fileURLToPath } = await import('node:url');
+// fileURLToPath, bukan .pathname — di Windows .pathname memberi "/D:/..."
+const appDir = process.env.APP_DIR || fileURLToPath(new URL('..', import.meta.url));
 const sizeKb = Number(execSync('du -sk public | cut -f1', { cwd: appDir }).toString().trim());
 check('Ukuran app shell <= 5 MB', sizeKb <= 5120, `${(sizeKb / 1024).toFixed(2)} MB`);
 
