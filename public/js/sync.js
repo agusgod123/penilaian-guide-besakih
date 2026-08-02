@@ -53,6 +53,35 @@
         || global.location.protocol === 'file:';
   }
 
+  /**
+   * Jenis backend. Google Apps Script hanya punya SATU URL (…/exec) tanpa path,
+   * jadi endpoint-nya dibedakan lewat query parameter.
+   */
+  function serverKind() {
+    return /script\.google(usercontent)?\.com/i.test(baseUrl()) ? 'gas' : 'rest';
+  }
+
+  /** URL endpoint sesuai jenis backend. */
+  function endpoint(nama) {
+    const b = baseUrl();
+    if (serverKind() === 'gas') {
+      return nama === 'evaluations' ? b : `${b}?action=${nama}`;
+    }
+    return nama === 'evaluations' ? `${b}/api/evaluations` : `${b}/api/${nama}`;
+  }
+
+  /**
+   * Header POST. Apps Script tidak menjawab preflight `OPTIONS`, sehingga
+   * `application/json` akan diblokir CORS. `text/plain` membuat permintaan
+   * tergolong "simple request" — isi body tetap JSON dan dibaca lewat
+   * `e.postData.contents`.
+   */
+  function postHeaders() {
+    return serverKind() === 'gas'
+      ? { 'Content-Type': 'text/plain;charset=utf-8' }
+      : { 'Content-Type': 'application/json' };
+  }
+
   function emit(state, detail) {
     listeners.forEach(fn => { try { fn(state, detail || {}); } catch (e) { console.warn(e); } });
   }
@@ -71,7 +100,7 @@
   /** Ambil daftar guide dari server, simpan ke cache. Aman dipanggil offline. */
   async function refreshGuides() {
     try {
-      const res = await fetchWithTimeout(`${baseUrl()}/api/guides`, { cache: 'no-store' }, 8000);
+      const res = await fetchWithTimeout(endpoint('guides'), { cache: 'no-store' }, 12000);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       if (Array.isArray(data.guides) && data.guides.length) {
@@ -87,9 +116,15 @@
   }
 
   async function ping() {
-    const res = await fetchWithTimeout(`${baseUrl()}/api/health`, { cache: 'no-store' }, 8000);
+    const res = await fetchWithTimeout(endpoint('health'), { cache: 'no-store' }, 15000);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
+  }
+
+  /** True bila server mengonfirmasi evaluationId tersimpan (bukan sekadar HTTP 200). */
+  function diterima_(body, evaluationId) {
+    return !!(body && Array.isArray(body.accepted)
+      && body.accepted.some(a => a && a.evaluationId === evaluationId));
   }
 
   /**
@@ -123,19 +158,37 @@
         catatan: item.catatan || '',
       };
       try {
-        const res = await fetchWithTimeout(`${baseUrl()}/api/evaluations`, {
+        const res = await fetchWithTimeout(endpoint('evaluations'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: postHeaders(),
           body: JSON.stringify(payload),
-        });
+        }, serverKind() === 'gas' ? 30000 : 12000);
+
         if (res.status >= 500 || res.status === 429) throw new Error('Server sibuk (' + res.status + ')');
-        if (res.status === 400) {
-          // Data ditolak permanen — tandai gagal agar tidak diulang selamanya
-          const body = await res.json().catch(() => ({}));
-          await DB.markFailed(item.evaluationId, 'Ditolak server: ' + JSON.stringify(body.rejected || body.error || ''));
+
+        const body = await res.json().catch(() => null);
+
+        // Server sedang terkunci (mis. pos lain menulis bersamaan) — coba lagi nanti.
+        if (body && body.busy) throw new Error('Server sedang sibuk menulis');
+
+        const ditolak = body && Array.isArray(body.rejected)
+          && body.rejected.some(r => !r.evaluationId || r.evaluationId === item.evaluationId);
+        if (res.status === 400 || (ditolak && !diterima_(body, item.evaluationId))) {
+          // Ditolak permanen (data tidak sah) — tandai gagal agar tidak diulang selamanya.
+          const alasan = body && body.rejected ? JSON.stringify(body.rejected) : ('HTTP ' + res.status);
+          await DB.markFailed(item.evaluationId, 'Ditolak server: ' + alasan);
           failed++; continue;
         }
+
         if (!res.ok) throw new Error('HTTP ' + res.status);
+
+        // Baru tandai ✅ kalau server benar-benar mengonfirmasi evaluationId ini.
+        // Status 200 saja tidak cukup: Apps Script tetap membalas 200 walau
+        // penulisan ke spreadsheet gagal, dan data akan hilang tanpa jejak.
+        if (!diterima_(body, item.evaluationId)) {
+          throw new Error('Server tidak mengonfirmasi penyimpanan');
+        }
+
         await DB.markSynced(item.evaluationId);
         sent++;
         emit('progress', { sent, total: queue.length });
@@ -177,7 +230,8 @@
   }
 
   global.Sync = {
-    Settings, baseUrl, needsServerUrl, isOnline, syncNow, refreshGuides, ping, start,
+    Settings, baseUrl, serverKind, endpoint, needsServerUrl,
+    isOnline, syncNow, refreshGuides, ping, start,
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     get isRunning() { return running; },
   };
