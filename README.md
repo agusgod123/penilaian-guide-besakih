@@ -118,9 +118,9 @@ app/
 │  └─ icons/
 ├─ server-gas/
 │  ├─ Code.gs          Backend Google Apps Script (spreadsheet sebagai database)
-│  └─ test-gas.mjs     20 pemeriksaan logika Code.gs di luar Google
+│  └─ test-gas.mjs     23 pemeriksaan logika Code.gs di luar Google
 ├─ test/
-│  ├─ app.test.mjs     48 pemeriksaan otomatis (jsdom + fake-indexeddb)
+│  ├─ app.test.mjs     53 pemeriksaan otomatis (jsdom + fake-indexeddb)
 │  └─ e2e.mjs          Uji browser sungguhan (opsional, butuh Puppeteer)
 ├─ render.yaml         Blueprint deploy backend ke Render
 └─ .github/workflows/  Deploy otomatis PWA ke GitHub Pages
@@ -187,7 +187,7 @@ node server/server.js &   # server harus hidup
 npm test
 ```
 
-Menjalankan 48 pemeriksaan yang memuat `index.html` sungguhan beserta seluruh
+Menjalankan 53 pemeriksaan yang memuat `index.html` sungguhan beserta seluruh
 skripnya, dan menguji setiap Acceptance Criteria PRD §9 termasuk simulasi putus
 jaringan, antrean sync, retry, enkripsi, idempotensi server, serta adapter
 Google Apps Script.
@@ -212,7 +212,7 @@ npm i puppeteer && npm run test:browser
 | Kode | Kriteria | Status |
 |------|----------|--------|
 | AC-1 | Buka tanpa login | ✅ |
-| AC-2 | Dropdown ≥ 10 guide, dapat dipilih | ✅ 14 guide |
+| AC-2 | Dropdown ≥ 10 guide, dapat dipilih | ✅ 296 guide |
 | AC-3 | Tiga toggle Ya/Tidak, tersimpan lokal | ✅ |
 | AC-4 | Tetap responsif & ikon offline saat jaringan hilang | ✅ |
 | AC-5 | Terkirim otomatis saat online, status → ✅ | ✅ |
@@ -227,8 +227,31 @@ hand-held & tablet, seluruh teks bahasa Indonesia.
 
 ## Kustomisasi
 
-- **Daftar guide** — sunting `server/guides.json` (set `"aktif": false` untuk menonaktifkan).
+- **Daftar guide** — sunting langsung tab `Guides` di spreadsheet (set kolom `aktif` = FALSE untuk menonaktifkan tanpa menghapus). Sumber awalnya `server/guides.json`; untuk memuat ulang massal, jalankan fungsi `resetGuides()` di Apps Script.
 - **Nama pos** — sunting `<option>` pada `#homePos` dan `#posSelect` di `index.html`.
 - **Alamat server** — dapat diubah staff lewat menu **Pengaturan** tanpa mengubah kode.
 
 Lisensi: MIT
+
+---
+
+## Data guide
+
+296 guide, hasil penggabungan dua daftar regu:
+
+| Kategori | Regu | Jumlah |
+|---|---|---|
+| Asing | A1 | 112 |
+| Asing | A2 | 116 |
+| Domestik | D1 | 52 |
+| Domestik | D2 | 32 |
+
+Angka per regu dijumlahkan lebih besar dari 296 karena **15 guide merangkap
+lebih dari satu regu** (mis. `I Wayan Mudana` di A1, D1, dan D2). Guide seperti ini
+disimpan sebagai **satu entri** dengan kolom `regu` berisi beberapa kode, dan tetap
+muncul di setiap regu saat difilter.
+
+Kolom `lisensi` dihapus karena tidak ada di data sumber, digantikan `kategori` dan `regu`.
+
+Di layar **Penilaian**, staff memilih Kategori dan Regu lebih dulu sehingga dropdown
+menyusut dari 296 menjadi 29–116 nama. Pilihan filter diingat antar penilaian.
