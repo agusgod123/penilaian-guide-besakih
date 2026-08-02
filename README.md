@@ -121,9 +121,9 @@ app/
 │  └─ icons/
 ├─ server-gas/
 │  ├─ Code.gs          Backend Google Apps Script (spreadsheet sebagai database)
-│  └─ test-gas.mjs     25 pemeriksaan logika Code.gs di luar Google
+│  └─ test-gas.mjs     38 pemeriksaan logika Code.gs di luar Google
 ├─ test/
-│  ├─ app.test.mjs     54 pemeriksaan otomatis (jsdom + fake-indexeddb)
+│  ├─ app.test.mjs     58 pemeriksaan otomatis (jsdom + fake-indexeddb)
 │  └─ e2e.mjs          Uji browser sungguhan (opsional, butuh Puppeteer)
 ├─ render.yaml         Blueprint deploy backend ke Render
 └─ .github/workflows/  Deploy otomatis PWA ke GitHub Pages
@@ -150,7 +150,7 @@ app/
   "guideName": "I Wayan Suparta",
   "pos": 1,
   "timestamp": "2026-08-02T08:00:00.000Z",
-  "criteria": { "idCard": true, "uniform": false, "etika": true },
+  "criteria": { "idCard": true, "uniform": false, "review": 2 },
   "catatan": "opsional"
 }
 ```
@@ -190,7 +190,7 @@ node server/server.js &   # server harus hidup
 npm test
 ```
 
-Menjalankan 54 pemeriksaan yang memuat `index.html` sungguhan beserta seluruh
+Menjalankan 58 pemeriksaan yang memuat `index.html` sungguhan beserta seluruh
 skripnya, dan menguji setiap Acceptance Criteria PRD §9 termasuk simulasi putus
 jaringan, antrean sync, retry, enkripsi, idempotensi server, serta adapter
 Google Apps Script.
@@ -235,6 +235,38 @@ hand-held & tablet, seluruh teks bahasa Indonesia.
 - **Alamat server** — dapat diubah staff lewat menu **Pengaturan** tanpa mengubah kode.
 
 Lisensi: MIT
+
+---
+
+## Kriteria penilaian
+
+Mengikuti cara penilaian yang sudah dipakai di lapangan (berkas *NILAI REWARD*):
+
+| Kriteria | Cara isi di aplikasi | Disimpan sebagai |
+|---|---|---|
+| Uniform | Ya / Tidak | `1` / `0` |
+| ID-Card | Ya / Tidak | `1` / `0` |
+| Review | tombol − dan + | angka `0`–`20` |
+
+Angka 1/0 dipilih supaya kolomnya bisa langsung dijumlah untuk peringkat reward,
+persis seperti rekap manual sebelumnya.
+
+---
+
+## Rekap bulanan otomatis
+
+Apps Script menyusun tab rekap berformat sama dengan berkas *NILAI REWARD*:
+
+- `Rekap A1 YYYY-MM`, `Rekap A2 …`, `Rekap D1 …`, `Rekap D2 …` — baris = guide,
+  kolom = tanggal × (UNI FORM, ID, REVIEW), lalu blok **TOTAL** berumus `=SUM(...)`
+- `Rekap per Pos YYYY-MM` — capaian tiap guide dipisah per pos pemeriksaan
+
+Bila satu guide dinilai di beberapa pos pada hari yang sama:
+**Uniform & ID diambil yang paling buruk**, **Review diambil yang tertinggi**
+supaya review yang tercatat di salah satu pos tidak hilang.
+
+Pembaruan: otomatis tiap malam (trigger 23.00) dan lewat menu
+**Penilaian Guide → Perbarui Rekap Bulan Ini** di spreadsheet.
 
 ---
 
