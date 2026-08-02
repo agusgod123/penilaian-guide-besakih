@@ -221,8 +221,16 @@
 
     <div class="field">
       <label class="lbl" for="serverUrl">Alamat Server</label>
-      <input id="serverUrl" class="bigselect" placeholder="https://server.contoh.id" inputmode="url">
-      <div class="help">Kosongkan untuk memakai server tempat aplikasi ini dibuka.</div>
+      <div id="serverAktif" class="aktifbox">
+        <strong>Sedang terhubung ke:</strong>
+        <span id="serverAktifUrl"></span>
+        <em id="serverAktifSumber"></em>
+      </div>
+      <input id="serverUrl" class="bigselect" placeholder="Kosongkan = pakai alamat bawaan" inputmode="url">
+      <div class="help">
+        Kolom ini hanya diisi bila alamat server berubah dan perlu ditimpa.
+        Kosongkan untuk kembali ke alamat bawaan aplikasi.
+      </div>
     </div>
 
     <div class="switchrow">
