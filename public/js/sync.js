@@ -31,9 +31,26 @@
     },
   };
 
+  const trim = u => String(u || '').trim().replace(/\/+$/, '');
+
+  /**
+   * Urutan penentuan alamat backend:
+   * 1. Yang diisi staff di menu Pengaturan
+   * 2. `serverUrl` pada config.js (untuk deploy statis, mis. GitHub Pages)
+   * 3. Origin tempat aplikasi dibuka (mis. `node server/server.js` di lokal)
+   */
   function baseUrl() {
-    const u = (Settings.get().serverUrl || '').trim();
-    return u ? u.replace(/\/+$/, '') : global.location.origin;
+    return trim(Settings.get().serverUrl)
+        || trim(global.APP_CONFIG && global.APP_CONFIG.serverUrl)
+        || global.location.origin;
+  }
+
+  /** True bila aplikasi di-host statis (tanpa backend di origin yang sama). */
+  function needsServerUrl() {
+    if (trim(Settings.get().serverUrl) || trim(global.APP_CONFIG && global.APP_CONFIG.serverUrl)) return false;
+    return /\.github\.io$/i.test(global.location.hostname)
+        || /\.pages\.dev$/i.test(global.location.hostname)
+        || global.location.protocol === 'file:';
   }
 
   function emit(state, detail) {
@@ -160,7 +177,7 @@
   }
 
   global.Sync = {
-    Settings, baseUrl, isOnline, syncNow, refreshGuides, ping, start,
+    Settings, baseUrl, needsServerUrl, isOnline, syncNow, refreshGuides, ping, start,
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     get isRunning() { return running; },
   };

@@ -72,7 +72,7 @@
     if (view === 'riwayat') renderHistory();
     if (view === 'guides') renderGuideCards();
     if (view === 'home') refreshStats();
-    if (view === 'pengaturan') refreshStorage();
+    if (view === 'pengaturan') { refreshStorage(); refreshServerNotice(); }
   }
 
   function openDrawer() {
@@ -281,6 +281,11 @@
     label.textContent = 'Online';
   }
 
+  function refreshServerNotice() {
+    const el = $('#serverNotice');
+    if (el) el.hidden = !Sync.needsServerUrl();
+  }
+
   async function refreshStorage() {
     const info = await DB.storageInfo();
     const pct = Math.round(info.ratio * 100);
@@ -398,6 +403,7 @@
 
     $('#serverUrl').addEventListener('change', e => {
       Sync.Settings.set({ serverUrl: e.target.value.trim() });
+      refreshServerNotice();
       toast('Alamat server disimpan', 'ok', '⚙️');
     });
     $('#optForceOffline').addEventListener('change', e => { Sync.Settings.set({ forceOffline: e.target.checked }); setNet(); });
