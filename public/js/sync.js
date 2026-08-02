@@ -17,7 +17,10 @@
   let retryTimer = null;
   let backoffStep = 0;
 
-  const defaults = { serverUrl: '', forceOffline: false, encrypt: true, haptic: true, pos: 1 };
+  const defaults = {
+    serverUrl: '', forceOffline: false, encrypt: true, haptic: true, pos: 1,
+    filterKategori: '', filterRegu: '',
+  };
 
   const Settings = {
     get() {

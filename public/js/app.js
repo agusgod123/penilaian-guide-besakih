@@ -99,42 +99,89 @@
     }
   }
 
+  /** Ubah kode regu ("A1") menjadi label manusia ("Asing · Regu 1"). */
+  function labelRegu(kode) {
+    return String(kode || '').split(',').map(s => s.trim()).filter(Boolean).map(k => {
+      const kat = k[0] === 'A' ? 'Asing' : 'Domestik';
+      return `${kat} · Regu ${k.slice(1)}`;
+    }).join(' + ');
+  }
+
+  /** Apakah guide termasuk dalam kategori/regu yang sedang dipilih. */
+  function cocokFilter(g, kategori, regu) {
+    if (!kategori && !regu) return true;
+    const kode = String(g.regu || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (!kode.length) return false;
+    return kode.some(k => {
+      const kat = k[0] === 'A' ? 'Asing' : 'Domestik';
+      return (!kategori || kat === kategori) && (!regu || k.slice(1) === regu);
+    });
+  }
+
+  /** Daftar guide sesuai filter yang aktif di layar Penilaian. */
+  function guidesTersaring() {
+    const kat = $('#filterKategori') ? $('#filterKategori').value : '';
+    const rg = $('#filterRegu') ? $('#filterRegu').value : '';
+    return guides.filter(g => cocokFilter(g, kat, rg));
+  }
+
   function fillGuideInputs() {
+    const list = guidesTersaring();
     const dl = $('#guideList');
-    dl.innerHTML = guides.map(g =>
-      `<option value="${esc(g.guideName)}">${esc(g.guideId)}${g.lisensi ? ' · ' + esc(g.lisensi) : ''}</option>`
+    dl.innerHTML = list.map(g =>
+      `<option value="${esc(g.guideName)}">${esc(labelRegu(g.regu))}</option>`
     ).join('');
-    $('#guideCount').textContent = `${guides.length} guide aktif tersedia.`;
+    const total = guides.length;
+    $('#guideCount').textContent = list.length === total
+      ? `${total} guide aktif tersedia.`
+      : `Menampilkan ${list.length} dari ${total} guide.`;
     if (current === 'guides') renderGuideCards();
   }
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  /**
+   * Cari guide dari teks yang diketik staff.
+   * Yang sedang tersaring diprioritaskan, supaya pilihan filter menentukan
+   * guide mana yang dimaksud bila ada nama mirip.
+   */
   function findGuide(name) {
     const q = String(name || '').trim().toLowerCase();
     if (!q) return null;
-    return guides.find(g => g.guideName.toLowerCase() === q)
-        || guides.find(g => g.guideName.toLowerCase().includes(q))
-        || null;
+    const cari = (arr) => arr.find(g => g.guideName.toLowerCase() === q)
+                       || arr.find(g => g.guideName.toLowerCase().includes(q))
+                       || null;
+    return cari(guidesTersaring()) || cari(guides);
   }
+
+  let guideKategoriFilter = '';
 
   function renderGuideCards() {
     const q = ($('#guideSearch').value || '').toLowerCase();
-    const list = guides.filter(g => !q || g.guideName.toLowerCase().includes(q) || String(g.guideId).toLowerCase().includes(q));
+    const list = guides
+      .filter(g => !guideKategoriFilter || cocokFilter(g, guideKategoriFilter, ''))
+      .filter(g => !q || g.guideName.toLowerCase().includes(q) || String(g.guideId).toLowerCase().includes(q));
     const box = $('#guideCards');
+    const info = $('#guideTotal');
+    if (info) info.textContent = `${list.length} dari ${guides.length} guide`;
     if (!list.length) {
       box.innerHTML = `<div class="empty"><span class="big">👥</span>Tidak ada guide yang cocok.</div>`;
       return;
     }
-    box.innerHTML = list.map(g => `
+    // Batasi jumlah kartu yang digambar agar layar tetap ringan di perangkat lama
+    const tampil = list.slice(0, 120);
+    box.innerHTML = tampil.map(g => `
       <button class="card" data-guide="${esc(g.guideName)}">
         <span class="cstat">👤</span>
         <span class="cbody">
           <span class="cname">${esc(g.guideName)}</span>
-          <span class="cmeta">${esc(g.guideId)}${g.lisensi ? ' · Lisensi ' + esc(g.lisensi) : ''}</span>
+          <span class="cmeta">${esc(g.guideId)} · ${esc(labelRegu(g.regu))}</span>
         </span>
-      </button>`).join('');
+      </button>`).join('')
+      + (list.length > tampil.length
+        ? `<div class="help">Menampilkan ${tampil.length} teratas. Ketik di kotak cari untuk mempersempit.</div>`
+        : '');
   }
 
   /* ---------------------- Form penilaian ---------------------- */
@@ -178,7 +225,7 @@
 
   function showPicked(g) {
     const el = $('#guidePicked');
-    el.textContent = `✓ ${g.guideName} · ${g.guideId}`;
+    el.textContent = `✓ ${g.guideName} · ${g.guideId} · ${labelRegu(g.regu)}`;
     el.classList.remove('hidden');
   }
 
@@ -367,8 +414,38 @@
 
     $('#guideSearch').addEventListener('input', renderGuideCards);
 
-    $$('.chip').forEach(ch => ch.addEventListener('click', () => {
-      $$('.chip').forEach(x => x.classList.remove('active'));
+    // Filter kategori & regu di layar Penilaian
+    ['#filterKategori', '#filterRegu'].forEach(sel => {
+      const el = $(sel);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        Sync.Settings.set({
+          filterKategori: $('#filterKategori').value,
+          filterRegu: $('#filterRegu').value,
+        });
+        // Kalau nama yang sudah diketik tak lagi masuk filter, kosongkan
+        const g = findGuide($('#guideInput').value);
+        if (!g || !cocokFilter(g, $('#filterKategori').value, $('#filterRegu').value)) {
+          $('#guideInput').value = '';
+          form.guide = null;
+          $('#guidePicked').classList.add('hidden');
+        }
+        fillGuideInputs();
+        saveDraft();
+      });
+    });
+
+    // Filter kategori di layar Daftar Guide
+    $$('.chip[data-gfilter]').forEach(ch => ch.addEventListener('click', () => {
+      $$('.chip[data-gfilter]').forEach(x => x.classList.remove('active'));
+      ch.classList.add('active');
+      guideKategoriFilter = ch.dataset.gfilter;
+      renderGuideCards();
+    }));
+
+    // Chip riwayat dan chip daftar guide harus terpisah — jangan pakai '.chip' polos
+    $$('.chip[data-filter]').forEach(ch => ch.addEventListener('click', () => {
+      $$('.chip[data-filter]').forEach(x => x.classList.remove('active'));
       ch.classList.add('active'); historyFilter = ch.dataset.filter; renderHistory();
     }));
 
@@ -448,6 +525,10 @@
     form.pos = s.pos || 1;
     $('#homePos').value = String(form.pos);
     $('#posSelect').value = String(form.pos);
+    // Filter guide diingat antar penilaian — staff satu pos biasanya
+    // menangani kategori/regu yang sama sepanjang hari.
+    if ($('#filterKategori')) $('#filterKategori').value = s.filterKategori || '';
+    if ($('#filterRegu')) $('#filterRegu').value = s.filterRegu || '';
 
     bind();
     bindSync();
