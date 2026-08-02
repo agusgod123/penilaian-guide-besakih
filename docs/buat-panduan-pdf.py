@@ -199,7 +199,7 @@ C.append(Spacer(1, 14))
 ringkas = [
     ['Jenis aplikasi', 'Progressive Web App (PWA) — dipasang di layar depan HP/tablet'],
     ['Untuk siapa', 'Staff lapangan di 3 pos pemeriksaan'],
-    ['Yang dinilai', 'ID-Card, Uniform, Etika — masing-masing Ya / Tidak'],
+    ['Yang dinilai', 'Uniform &amp; ID-Card (Ya/Tidak &#8594; 1/0), Review (angka)'],
     ['Jumlah guide', f'{len(GUIDES)} orang (Asing &amp; Domestik, 4 regu)'],
     ['Basis data', 'Google Spreadsheet'],
     ['Tanpa sinyal', 'Tetap bisa menilai — terkirim otomatis saat online'],
@@ -209,10 +209,10 @@ ringkas = [
 C.append(tabel([['Hal', 'Keterangan']] + ringkas, [42 * mm, 124 * mm]))
 C.append(Spacer(1, 12))
 C.append(kotak('Ringkasan satu paragraf', [
-    'Staff di pos memilih nama guide lalu menekan Ya/Tidak untuk ID-Card, Uniform, '
-    'dan Etika. Penilaian tersimpan di HP walau tanpa sinyal, lalu terkirim sendiri '
-    'ke Google Spreadsheet begitu ada koneksi. Rekap dan laporan dibuat langsung dari '
-    'spreadsheet tersebut.',
+    'Staff di pos memilih nama guide lalu menekan Ya/Tidak untuk Uniform dan ID-Card, '
+    'serta mengisi jumlah Review. Penilaian tersimpan di HP walau tanpa sinyal, lalu '
+    'terkirim sendiri ke Google Spreadsheet begitu ada koneksi. Tab rekap bulanan '
+    'berformat NILAI REWARD tersusun otomatis setiap malam.',
 ], warna=HIJAU_MUDA, garis=HIJAU))
 C.append(NextPageTemplate('isi'))
 C.append(PageBreak())
@@ -252,9 +252,9 @@ C.append(P(
     'disalin ulang, dan hasilnya baru diketahui jauh setelah kejadian.'))
 C.append(P(
     'Aplikasi ini menggantikan formulir tersebut. Staff di pos cukup memilih nama guide '
-    'lalu menekan Ya atau Tidak untuk tiga hal: <b>ID-Card</b>, <b>Uniform</b>, dan '
-    '<b>Etika</b>. Datanya langsung masuk ke satu spreadsheet pusat yang bisa dibuat '
-    'rekap kapan saja.'))
+    'lalu menekan Ya atau Tidak untuk <b>Uniform</b> dan <b>ID-Card</b>, kemudian '
+    'mengisi jumlah <b>Review</b> dengan tombol − dan +. Datanya langsung masuk ke '
+    'satu spreadsheet pusat, dan tab rekap bulanan tersusun sendiri.'))
 
 C.append(P('Masalah yang secara khusus dipecahkan', 'h2'))
 C.append(tabel([
@@ -489,8 +489,10 @@ C.append(langkah([
     'Ketik beberapa huruf nama guide, lalu pilih dari daftar yang muncul. '
     'Nama yang terpilih ditampilkan dengan tanda centang beserta regunya — '
     'pastikan sudah benar.',
-    'Tekan <b>Ya</b> atau <b>Tidak</b> untuk ID-Card, Uniform, dan Etika. '
-    'Ketiganya harus diisi.',
+    'Tekan <b>Ya</b> atau <b>Tidak</b> untuk <b>Uniform</b> dan <b>ID-Card</b> '
+    '(keduanya wajib diisi).',
+    'Isi <b>Review</b> dengan tombol − dan +. Biarkan 0 bila guide tidak mendapat '
+    'review pada hari itu.',
     'Isi <b>Catatan</b> bila perlu (boleh dikosongkan).',
     'Tekan <b>SIMPAN PENILAIAN</b>. Muncul pesan "Penilaian tersimpan" dan '
     'formulir siap untuk guide berikutnya.',
@@ -574,7 +576,8 @@ C.append(tabel([
     ['timestamp', 'Waktu penilaian dibuat di lapangan'],
     ['pos', 'Pos pemeriksaan: 1, 2, atau 3'],
     ['guideId / guideName', 'Guide yang dinilai'],
-    ['idCard / uniform / etika', 'TRUE = sesuai, FALSE = tidak sesuai'],
+    ['uniform / idCard', '1 = sesuai, 0 = tidak sesuai'],
+    ['review', 'Jumlah review (angka, 0 bila tidak ada)'],
     ['catatan', 'Catatan tambahan dari staff'],
     ['receivedAt', 'Waktu data diterima server (bisa jauh setelah timestamp bila offline)'],
 ], [46 * mm, 120 * mm]))
@@ -588,19 +591,54 @@ C.append(langkah([
     'Untuk laporan bulanan, tambahkan filter pada kolom timestamp.',
 ]))
 
-C.append(P('B. Unduh CSV dari spreadsheet', 'h2'))
+C.append(P('B. Tab rekap bulanan otomatis (format NILAI REWARD)', 'h2'))
+C.append(P(
+    'Spreadsheet menyusun sendiri tab rekap yang bentuknya sama persis dengan berkas '
+    '<b>NILAI REWARD</b> yang selama ini dibuat manual. Tidak ada yang perlu diketik ulang.'))
+C.append(tabel([
+    ['Nama tab', 'Isinya'],
+    ['Rekap A1 YYYY-MM', 'Seluruh guide Asing Regu 1'],
+    ['Rekap A2 YYYY-MM', 'Seluruh guide Asing Regu 2'],
+    ['Rekap D1 YYYY-MM', 'Seluruh guide Domestik Regu 1'],
+    ['Rekap D2 YYYY-MM', 'Seluruh guide Domestik Regu 2'],
+    ['Rekap per Pos YYYY-MM', 'Rincian capaian tiap guide dipisah per pos pemeriksaan'],
+], [46 * mm, 120 * mm]))
+C.append(P(
+    'Susunan tiap tab: baris = nama guide, kolom = tanggal. Setiap tanggal punya tiga '
+    'kolom kecil <b>UNI FORM</b>, <b>ID</b>, dan <b>REVIEW</b>. Di paling kanan ada blok '
+    '<b>TOTAL</b> yang berisi rumus <font face="Courier">=SUM(...)</font> — jadi totalnya '
+    'ikut berubah sendiri bila ada koreksi manual. Kolom nama dibekukan supaya tetap '
+    'terlihat saat digeser ke kanan.'))
+C.append(P('Kapan tab ini diperbarui', 'h3'))
+C.append(langkah([
+    '<b>Otomatis</b> setiap malam sekitar pukul 23.00.',
+    '<b>Manual kapan saja</b>: menu <b>Penilaian Guide</b> → '
+    '<b>Perbarui Rekap Bulan Ini</b> (atau <b>Bulan Lalu</b>).',
+]))
+C.append(kotak('Bila satu guide dinilai di lebih dari satu pos pada hari yang sama', [
+    '<b>Uniform</b> dan <b>ID</b> diambil nilai yang <b>paling buruk</b> — '
+    'sekali tidak sesuai tetap tercatat 0.',
+    '<b>Review</b> diambil angka <b>tertinggi</b>, supaya review yang tercatat di '
+    'salah satu pos tidak hilang.',
+    'Rincian per pos tetap bisa dilihat di tab <b>Rekap per Pos</b>.',
+], warna=HIJAU_MUDA, garis=HIJAU))
+C.append(P(
+    'Bulan baru membuat set tab baru sendiri, jadi rekap bulan-bulan sebelumnya '
+    'tidak tertimpa.'))
+
+C.append(P('C. Unduh CSV dari spreadsheet', 'h2'))
 C.append(P(
     'Menu <b>File</b> → <b>Download</b> → <b>Comma-separated values (.csv)</b>. '
     'Berkasnya bisa dibuka di Excel. Pastikan tab Evaluations sedang aktif, karena '
     'Google mengunduh tab yang sedang terbuka saja.'))
 
-C.append(P('C. Export CSV dari HP staff', 'h2'))
+C.append(P('D. Export CSV dari HP staff', 'h2'))
 C.append(P(
     'Di aplikasi: menu → <b>Riwayat</b> → tombol <b>Export CSV</b>. '
     'Berisi penilaian yang tersimpan di perangkat itu saja, termasuk yang belum terkirim. '
     'Berguna ketika perlu bukti dari satu pos tertentu, atau saat perangkat bermasalah.'))
 
-C.append(P('D. Cadangan JSON', 'h2'))
+C.append(P('E. Cadangan JSON', 'h2'))
 C.append(P(
     'Di aplikasi: menu → <b>Pengaturan</b> → <b>Export Cadangan JSON</b>. '
     'Berisi seluruh data mentah di perangkat. Format ini untuk keperluan teknis, '
