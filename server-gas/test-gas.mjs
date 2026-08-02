@@ -49,6 +49,7 @@ class FakeSheet {
   setFrozenRows(n) { this.frozen = n; }
   setColumnWidth(i, w) { this.widths[i] = w; }
   deleteRow(r) { this.data.splice(r - 1, 1); }
+  clear() { this.data = []; return this; }
 }
 
 class FakeSpreadsheet {
@@ -96,24 +97,37 @@ cek('setup() membuat tab Guides, Evaluations, Petunjuk',
   ['Guides', 'Evaluations', 'Petunjuk'].every(n => doc.getSheetByName(n)),
   doc.getSheets().map(s => s.nama).join(', '));
 cek('setup() menghapus tab bawaan Sheet1', !doc.getSheetByName('Sheet1'));
-cek('setup() mengisi 15 guide + header', doc.getSheetByName('Guides').getLastRow() === 16);
+const JML_GUIDE = 296;
+cek('setup() mengisi seluruh guide + header',
+  doc.getSheetByName('Guides').getLastRow() === JML_GUIDE + 1,
+  `${doc.getSheetByName('Guides').getLastRow() - 1} guide`);
 cek('setup() memasang header Evaluations', doc.getSheetByName('Evaluations').getLastRow() === 1);
 
 setup();
 cek('setup() aman dijalankan dua kali (tidak menggandakan)',
-  doc.getSheetByName('Guides').getLastRow() === 16);
+  doc.getSheetByName('Guides').getLastRow() === JML_GUIDE + 1);
 
 const health = J(doGet({ parameter: { action: 'health' } }));
 cek('health membalas ok & total 0', health.ok === true && health.total === 0);
 
 const g = J(doGet({ parameter: { action: 'guides' } }));
-cek('guides hanya mengembalikan yang aktif', g.guides.length === 14, `${g.guides.length} dari 15`);
-cek('guides memuat field yang dibutuhkan aplikasi',
-  !!g.guides[0].guideId && !!g.guides[0].guideName && g.guides[0].aktif === true);
+cek('guides mengembalikan seluruh yang aktif', g.guides.length === JML_GUIDE, `${g.guides.length} guide`);
+cek('guides memuat kategori & regu',
+  !!g.guides[0].guideId && !!g.guides[0].guideName && !!g.guides[0].kategori && !!g.guides[0].regu,
+  JSON.stringify(g.guides[0]));
+
+// Guide nonaktif harus tersaring
+{
+  const gs = doc.getSheetByName('Guides');
+  gs.data.push(['G-900', 'Guide Nonaktif', 'Asing', 'A1', false]);
+  const g2 = J(doGet({ parameter: { action: 'guides' } }));
+  cek('Guide dengan aktif=FALSE tidak ikut terkirim', g2.guides.length === JML_GUIDE);
+  gs.data.pop();
+}
 
 const post = (obj) => J(doPost({ postData: { contents: JSON.stringify(obj) } }));
 const contoh = (id, pos = 1) => ({
-  evaluationId: id, guideId: 'G-001', guideName: 'I Wayan Suparta', pos,
+  evaluationId: id, guideId: 'G-001', guideName: 'Gusti Alit Astawa', pos,
   timestamp: new Date().toISOString(),
   criteria: { idCard: true, uniform: false, etika: true }, catatan: 'uji',
 });
@@ -160,6 +174,19 @@ cek('Kunci selalu dilepas kembali', lockDipegang === false);
 
 const totalAkhir = J(doGet({ parameter: { action: 'health' } })).total;
 cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${totalAkhir}`);
+
+/* ---------------- resetGuides ---------------- */
+{
+  const gs = doc.getSheetByName('Guides');
+  gs.data.push(['G-999', 'Guide Tambahan Manual', 'Asing', 'A1', true]);
+  const sebelum = gs.getLastRow();
+  const barisEvalSebelum = doc.getSheetByName('Evaluations').getLastRow();
+  const pesan = sandbox.resetGuides();
+  cek('resetGuides() menulis ulang daftar guide dari awal',
+    sebelum === JML_GUIDE + 2 && doc.getSheetByName('Guides').getLastRow() === JML_GUIDE + 1, pesan);
+  cek('resetGuides() tidak menyentuh data penilaian',
+    doc.getSheetByName('Evaluations').getLastRow() === barisEvalSebelum);
+}
 
 const sebelumUji = doc.getSheetByName('Evaluations').getLastRow();
 const uji = ujiCepat();
