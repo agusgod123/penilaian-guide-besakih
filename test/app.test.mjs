@@ -41,6 +41,9 @@ Object.defineProperty(window, 'crypto', { value: webcrypto, configurable: true }
 window.isSecureContext = true;
 window.fetch = (...a) => fetch(...a);
 window.Blob = globalThis.Blob;
+// jsdom versi baru tidak lagi memasang TextEncoder/TextDecoder di window
+window.TextEncoder = globalThis.TextEncoder;
+window.TextDecoder = globalThis.TextDecoder;
 window.URL.createObjectURL = () => 'blob:stub';
 window.URL.revokeObjectURL = () => {};
 window.confirm = () => true;
@@ -355,6 +358,8 @@ check('Pengiriman ulang tidak menggandakan data di server (append-only)', before
   w2.IDBKeyRange = globalThis.IDBKeyRange;
   Object.defineProperty(w2, 'crypto', { value: webcrypto, configurable: true });
   w2.isSecureContext = true;
+  w2.TextEncoder = globalThis.TextEncoder;
+  w2.TextDecoder = globalThis.TextDecoder;
   w2.scrollTo = () => {};
   w2.alert = () => {};
   w2.confirm = () => true;
