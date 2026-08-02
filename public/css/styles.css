@@ -31,6 +31,9 @@ body{
   -webkit-text-size-adjust:100%;
 }
 .hidden{display:none !important}
+/* Atribut [hidden] harus selalu menang atas `display` milik class
+   (.view, .drawer, .tutorial semuanya menyetel display). */
+[hidden]{display:none !important}
 svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 
 /* ------------------------- App bar ------------------------- */
