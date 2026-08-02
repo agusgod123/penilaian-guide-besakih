@@ -140,6 +140,9 @@ main{max-width:640px;margin:0 auto;padding:16px 16px calc(28px + env(safe-area-i
 .bigselect:focus,.bigtext:focus{outline:none;border-color:var(--hijau);box-shadow:0 0 0 3px var(--hijau-muda)}
 select.bigselect{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230B5D3B' stroke-width='3' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
   background-repeat:no-repeat;background-position:right 14px center;background-size:22px;padding-right:46px}
+.duakolom{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sublbl{display:block;font-size:14px;font-weight:600;color:var(--abu);margin-bottom:4px}
+
 .picked{background:var(--hijau-muda);border-radius:12px;padding:10px 14px;font-size:15px;font-weight:600;color:var(--hijau-tua)}
 
 /* ------------------------- Kriteria ------------------------- */
