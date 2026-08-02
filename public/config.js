@@ -1,15 +1,27 @@
 /* =========================================================
    config.js — Konfigurasi aplikasi
    ---------------------------------------------------------
-   Isi `serverUrl` dengan alamat backend kamu, lalu commit ulang.
-   Contoh:  serverUrl: 'https://penilaian-guide-besakih-api.onrender.com'
+   `serverUrl` diisi alamat Web App Google Apps Script yang menulis
+   ke spreadsheet "Penilaian Guide Besakih — Basis Data".
 
-   Biarkan kosong ('') jika aplikasi dijalankan dari server yang
-   sama dengan backend (mis. `node server/server.js` di lokal).
+   Diisi di sini supaya aplikasi LANGSUNG SIAP PAKAI di perangkat mana
+   pun tanpa perlu diatur manual. Staff tetap bisa menimpanya lewat
+   menu Pengaturan bila suatu saat alamatnya berubah.
 
-   Catatan: staff tetap dapat mengubah alamat ini kapan saja
-   lewat menu Pengaturan tanpa mengubah kode.
+   ---------------------------------------------------------
+   CATATAN KEAMANAN
+   Repositori ini publik, jadi alamat di bawah dapat dibaca siapa saja.
+   Web App di-deploy dengan akses "Anyone", sehingga pihak yang
+   menemukannya bisa mengirim baris penilaian palsu ke spreadsheet.
+
+   Data tidak bisa dihapus atau diubah dari luar (bersifat append-only),
+   dan daftar penilaian tidak bisa dibaca lewat alamat ini.
+
+   Bila alamat ini perlu dicabut:
+   1. Apps Script → Deploy → Manage deployments → Archive deployment lama
+   2. Deploy → New deployment → Web app  (menghasilkan URL baru)
+   3. Perbarui nilai serverUrl di bawah, lalu commit
    ========================================================= */
 window.APP_CONFIG = {
-  serverUrl: '',
+  serverUrl: 'https://script.google.com/macros/s/AKfycbzxwu_2j1NUqKSkE7WaBWyN5WpXgm37jRQfeiTnp2refg-tanQO_CXrFlik_n0YU2Gs/exec',
 };

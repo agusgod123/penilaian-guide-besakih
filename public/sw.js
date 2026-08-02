@@ -2,7 +2,7 @@
    sw.js — Service Worker (PRD AC-8, §5 ketersediaan 100% offline)
    Strategi: cache-first untuk app shell, network-only untuk /api/*
    ========================================================= */
-const CACHE = 'besakih-guide-v1.1.0';
+const CACHE = 'besakih-guide-v1.2.0';
 const SHELL = [
   './',
   './index.html',
