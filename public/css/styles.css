@@ -160,6 +160,18 @@ select.bigselect{appearance:none;background-image:url("data:image/svg+xml;utf8,<
 .seg.yes.on{background:var(--hijau);color:#fff}
 .seg.no.on{background:var(--merah);color:#fff}
 .criterion.unset .segmented{border-color:var(--emas)}
+
+/* Penghitung Review — tombol besar, tanpa mengetik */
+.stepper{display:flex;align-items:center;gap:0;border:2px solid var(--garis);
+  border-radius:14px;overflow:hidden}
+.stepbtn{min-width:60px;min-height:52px;border:0;background:var(--putih);
+  font-family:inherit;font-size:26px;font-weight:700;color:var(--hijau);
+  cursor:pointer;line-height:1}
+.stepbtn:active{background:var(--hijau-muda)}
+.stepbtn[disabled]{color:var(--garis);pointer-events:none}
+.stepnilai{min-width:56px;min-height:52px;display:grid;place-items:center;
+  font-size:22px;font-weight:800;background:var(--hijau-muda);color:var(--hijau-tua);
+  border-left:2px solid var(--garis);border-right:2px solid var(--garis)}
 .draft-note{font-size:14px;color:var(--hijau);text-align:center}
 
 /* ------------------------- Cards / Riwayat ------------------------- */
