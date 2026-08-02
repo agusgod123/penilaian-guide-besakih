@@ -189,6 +189,11 @@ select.bigselect{appearance:none;background-image:url("data:image/svg+xml;utf8,<
 .switch input:checked + span{background:var(--hijau)}
 .switch input:checked + span::after{transform:translateX(26px)}
 
+.notice{background:#FFF6E0;border:2px solid var(--emas);border-radius:var(--radius);padding:14px 16px}
+.notice strong{display:block;font-size:17px;margin-bottom:6px}
+.notice p{margin:0;font-size:15px;line-height:1.5}
+.notice code{background:rgba(0,0,0,.07);padding:2px 6px;border-radius:6px;font-size:14px;word-break:break-all}
+
 .storagebox{background:var(--putih);border:1px solid var(--garis);border-radius:var(--radius);padding:14px 16px}
 .storagebar{height:12px;background:var(--abu-muda);border-radius:999px;overflow:hidden;margin-bottom:8px}
 .storagebar i{display:block;height:100%;width:0;background:var(--hijau);transition:width .3s}
