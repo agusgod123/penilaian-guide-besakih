@@ -186,6 +186,13 @@
 
   <!-- ===================== PENGATURAN ===================== -->
   <section id="view-pengaturan" class="view" hidden>
+    <div id="serverNotice" class="notice" hidden>
+      <strong>⚠️ Alamat server belum diisi</strong>
+      <p>Penilaian tetap tersimpan aman di perangkat ini, tapi belum bisa dikirim ke pusat.
+         Isi <em>Alamat Server</em> di bawah dengan alamat backend (mis.
+         <code>https://nama-app.onrender.com</code>), lalu tekan <em>Tes Koneksi Server</em>.</p>
+    </div>
+
     <div class="field">
       <label class="lbl" for="serverUrl">Alamat Server</label>
       <input id="serverUrl" class="bigselect" placeholder="https://server.contoh.id" inputmode="url">
@@ -271,6 +278,7 @@
 <!-- ===================== TOAST ===================== -->
 <div id="toastWrap" class="toastwrap" aria-live="polite"></div>
 
+<script src="config.js"></script>
 <script src="js/db.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/app.js"></script>
