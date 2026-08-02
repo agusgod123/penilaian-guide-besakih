@@ -274,8 +274,22 @@ check('config.js dipakai bila Pengaturan kosong',
 setVal($('#serverUrl'), 'https://prioritas.contoh.id');
 check('Pengaturan staff mengalahkan config.js',
   window.Sync.baseUrl() === 'https://prioritas.contoh.id');
+setVal($('#serverUrl'), '');
 check('Peringatan "alamat server belum diisi" tidak muncul di perangkat baru',
   window.Sync.needsServerUrl() === false && $('#serverNotice').hidden === true);
+
+// Alamat yang sedang dipakai harus terlihat, walau kolomnya sengaja kosong
+check('Alamat server aktif ditampilkan meski kolom isian kosong',
+  $('#serverUrl').value === '' &&
+  $('#serverAktifUrl').textContent === window.Sync.baseUrl() &&
+  $('#serverAktifSumber').textContent.indexOf('bawaan') > -1,
+  $('#serverAktifUrl').textContent.slice(0, 40) + '… / ' + $('#serverAktifSumber').textContent);
+
+setVal($('#serverUrl'), 'https://ditimpa.contoh.id');
+check('Sumber alamat berubah jadi "diisi manual" saat ditimpa',
+  $('#serverAktifUrl').textContent === 'https://ditimpa.contoh.id' &&
+  $('#serverAktifSumber').textContent.indexOf('manual') > -1);
+setVal($('#serverUrl'), '');
 
 // kembalikan ke server uji lokal untuk sisa pemeriksaan
 window.APP_CONFIG.serverUrl = '';
@@ -322,6 +336,52 @@ await fetch(BASE + '/api/evaluations', {
 });
 const after = (await (await fetch(BASE + '/api/health')).json()).total;
 check('Pengiriman ulang tidak menggandakan data di server (append-only)', before === after, `${before} → ${after}`);
+
+/* ---------- Daftar guide tetap ada walau server gagal ---------- */
+{
+  // Tiru perangkat baru: tidak ada cache, dan setiap panggilan ke server gagal.
+  const aslinya = window.fetch;
+  window.localStorage.removeItem('besakih.guides');
+  window.fetch = async (url, opts) => {
+    const u = String(url);
+    if (u.indexOf('guides.json') > -1) return aslinya(u, opts); // salinan bawaan
+    throw new Error('server tidak terjangkau');
+  };
+
+  const dom2 = new JSDOM(html, { url: BASE + '/', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole: vc });
+  const w2 = dom2.window;
+  w2.indexedDB = globalThis.indexedDB;
+  w2.IDBKeyRange = globalThis.IDBKeyRange;
+  Object.defineProperty(w2, 'crypto', { value: webcrypto, configurable: true });
+  w2.isSecureContext = true;
+  w2.scrollTo = () => {};
+  w2.alert = () => {};
+  w2.confirm = () => true;
+  // guides.json dibaca langsung dari berkas, meniru berkas yang ikut terpasang
+  w2.fetch = async (url) => {
+    const u = String(url);
+    if (u.indexOf('guides.json') > -1) {
+      const teks = fs.readFileSync(path.join(APP, 'public', 'guides.json'), 'utf8');
+      return { ok: true, status: 200, json: async () => JSON.parse(teks) };
+    }
+    throw new Error('server tidak terjangkau');
+  };
+  for (const f of ['config.js', 'js/db.js', 'js/sync.js', 'js/app.js']) {
+    w2.eval(fs.readFileSync(path.join(APP, 'public', f), 'utf8'));
+  }
+  if (w2.document.readyState === 'loading') {
+    w2.document.dispatchEvent(new w2.Event('DOMContentLoaded'));
+  }
+  await sleep(1200);
+
+  const jml = w2.document.querySelectorAll('#guideList option').length;
+  check('Daftar guide tetap muncul walau server tidak terjangkau', jml === 296,
+    `${jml} guide dari salinan bawaan`);
+  check('Tidak menampilkan pesan "daftar guide belum tersedia"',
+    w2.document.querySelector('#guideHelp').textContent.indexOf('tidak dapat dimuat') === -1);
+
+  window.fetch = aslinya;
+}
 
 /* ---------- Adapter Google Apps Script ---------- */
 {
