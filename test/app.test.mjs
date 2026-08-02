@@ -261,6 +261,20 @@ await fetch(BASE + '/api/evaluations', {
 const after = (await (await fetch(BASE + '/api/health')).json()).total;
 check('Pengiriman ulang tidak menggandakan data di server (append-only)', before === after, `${before} → ${after}`);
 
+/* ---------- Atribut [hidden] benar-benar menyembunyikan ---------- */
+{
+  const css = fs.readFileSync(path.join(APP, 'public', 'css', 'styles.css'), 'utf8');
+  const hasRule = /\[hidden\]\s*\{[^}]*display\s*:\s*none\s*!important/.test(css);
+  const displayed = ['#drawer', '#tutorial', '#view-riwayat', '#serverNotice']
+    .filter(sel => {
+      const el = $(sel);
+      if (!el || !el.hidden) return false;
+      return window.getComputedStyle(el).display !== 'none';
+    });
+  check('Elemen [hidden] benar-benar tersembunyi (drawer, tutorial, view)',
+    hasRule && displayed.length === 0, displayed.join(', ') || 'aturan CSS ada');
+}
+
 /* ---------- Error JS ---------- */
 check('Tidak ada error JavaScript fatal', jsErrors.length === 0, jsErrors.slice(0, 2).join(' | '));
 
