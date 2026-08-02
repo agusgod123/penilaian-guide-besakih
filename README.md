@@ -55,15 +55,18 @@ dan rekapnya langsung bisa di-PivotTable untuk laporan.
 3. Jalankan fungsi `setup` → tab `Guides`, `Evaluations`, `Petunjuk` dibuat otomatis
    beserta data guide awal
 4. **Deploy → New deployment → Web app** — *Execute as*: **Me**, *Who has access*: **Anyone**
-5. Salin URL `/exec`, isikan di aplikasi lewat **Pengaturan → Alamat Server**
+5. Salin URL `/exec`, isikan ke `serverUrl` pada `public/config.js`, lalu commit
 
 Aplikasi mendeteksi jenis backend dari URL secara otomatis: `script.google.com`
 → mode Apps Script (query parameter + `Content-Type: text/plain` agar lolos CORS),
 selain itu → mode REST biasa.
 
-> **Jangan commit URL `/exec` ke repo publik.** Web app di-deploy sebagai "Anyone",
-> jadi URL itulah satu-satunya pembatas. Biarkan `config.js` kosong dan isikan
-> alamatnya per perangkat lewat menu Pengaturan.
+> **Alamat server tertanam di `public/config.js`** supaya aplikasi siap pakai di
+> perangkat mana pun tanpa pengaturan manual. Konsekuensinya: karena repo ini publik,
+> alamat tersebut dapat dibaca siapa saja dan pihak luar bisa mengirim baris palsu ke
+> spreadsheet. Data tidak bisa dibaca atau dihapus dari luar (append-only).
+> Untuk mencabut: arsipkan deployment lama di Apps Script, buat yang baru, lalu
+> perbarui `config.js`.
 
 Detail lengkap, termasuk batasan dan alternatifnya: [`docs/RENCANA-BACKEND-GOOGLE-SHEETS.md`](docs/RENCANA-BACKEND-GOOGLE-SHEETS.md).
 
@@ -118,9 +121,9 @@ app/
 │  └─ icons/
 ├─ server-gas/
 │  ├─ Code.gs          Backend Google Apps Script (spreadsheet sebagai database)
-│  └─ test-gas.mjs     23 pemeriksaan logika Code.gs di luar Google
+│  └─ test-gas.mjs     25 pemeriksaan logika Code.gs di luar Google
 ├─ test/
-│  ├─ app.test.mjs     53 pemeriksaan otomatis (jsdom + fake-indexeddb)
+│  ├─ app.test.mjs     54 pemeriksaan otomatis (jsdom + fake-indexeddb)
 │  └─ e2e.mjs          Uji browser sungguhan (opsional, butuh Puppeteer)
 ├─ render.yaml         Blueprint deploy backend ke Render
 └─ .github/workflows/  Deploy otomatis PWA ke GitHub Pages
@@ -187,7 +190,7 @@ node server/server.js &   # server harus hidup
 npm test
 ```
 
-Menjalankan 53 pemeriksaan yang memuat `index.html` sungguhan beserta seluruh
+Menjalankan 54 pemeriksaan yang memuat `index.html` sungguhan beserta seluruh
 skripnya, dan menguji setiap Acceptance Criteria PRD §9 termasuk simulasi putus
 jaringan, antrean sync, retry, enkripsi, idempotensi server, serta adapter
 Google Apps Script.
