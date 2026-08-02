@@ -52,7 +52,7 @@ const downloads = [];
 window.HTMLAnchorElement.prototype.click = function () { downloads.push(this.download); };
 
 // jalankan skrip aplikasi berurutan
-for (const f of ['js/db.js', 'js/sync.js', 'js/app.js']) {
+for (const f of ['config.js', 'js/db.js', 'js/sync.js', 'js/app.js']) {
   window.eval(fs.readFileSync(path.join(APP, 'public', f), 'utf8'));
 }
 if (window.document.readyState === 'loading') {
@@ -205,6 +205,19 @@ check('Alamat server tersimpan & dinormalisasi',
   window.Sync.baseUrl() === 'https://server-lain.contoh.id');
 setVal($('#serverUrl'), '');
 check('Alamat kosong kembali ke server asal', window.Sync.baseUrl() === BASE);
+
+/* ---------- config.js sebagai fallback (deploy statis) ---------- */
+window.APP_CONFIG.serverUrl = 'https://contoh-api.onrender.com/';
+check('config.js dipakai bila Pengaturan kosong',
+  window.Sync.baseUrl() === 'https://contoh-api.onrender.com');
+setVal($('#serverUrl'), 'https://prioritas.contoh.id');
+check('Pengaturan staff mengalahkan config.js',
+  window.Sync.baseUrl() === 'https://prioritas.contoh.id');
+setVal($('#serverUrl'), '');
+window.APP_CONFIG.serverUrl = '';
+
+check('Peringatan server tidak muncul saat backend satu origin',
+  window.Sync.needsServerUrl() === false && $('#serverNotice').hidden === true);
 
 $('#optForceOffline').checked = true;
 $('#optForceOffline').dispatchEvent(new window.Event('change', { bubbles: true }));
