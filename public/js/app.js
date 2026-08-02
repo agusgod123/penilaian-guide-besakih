@@ -86,15 +86,44 @@
   }
 
   /* ---------------------- Guide ---------------------- */
+  /**
+   * Daftar guide diambil berlapis, dari yang paling cepat tersedia:
+   *   1. Cache di perangkat (hasil unduhan terakhir dari server)
+   *   2. Salinan bawaan yang ikut terpasang bersama aplikasi (guides.json)
+   *   3. Server — dipakai untuk memperbarui, bukan syarat agar daftar muncul
+   *
+   * Dengan begitu daftar nama SELALU ada, bahkan pada perangkat yang baru
+   * dipasang dan belum pernah berhasil menghubungi server.
+   */
   async function loadGuides() {
     const cached = DB.getGuides();
-    if (cached) { guides = cached.list; fillGuideInputs(); }
-    try {
-      guides = await Sync.refreshGuides();
+    if (cached && cached.list.length) {
+      guides = cached.list;
       fillGuideInputs();
+    } else {
+      try {
+        const res = await fetch('guides.json', { cache: 'no-cache' });
+        const bawaan = await res.json();
+        if (Array.isArray(bawaan) && bawaan.length) {
+          guides = bawaan;
+          fillGuideInputs();
+        }
+      } catch (e) {
+        console.warn('[guides] salinan bawaan tidak terbaca', e);
+      }
+    }
+
+    // Perbarui dari server di latar belakang
+    try {
+      const dariServer = await Sync.refreshGuides();
+      if (Array.isArray(dariServer) && dariServer.length) {
+        guides = dariServer;
+        fillGuideInputs();
+      }
     } catch {
-      if (!cached) {
-        $('#guideHelp').innerHTML = '⚠️ Daftar guide belum tersedia. Hubungkan ke server sekali untuk mengunduh daftar.';
+      if (!guides.length) {
+        $('#guideHelp').innerHTML =
+          '⚠️ Daftar guide tidak dapat dimuat. Tutup lalu buka ulang aplikasi.';
       }
     }
   }
@@ -331,6 +360,26 @@
   function refreshServerNotice() {
     const el = $('#serverNotice');
     if (el) el.hidden = !Sync.needsServerUrl();
+
+    // Tampilkan alamat yang BENAR-BENAR dipakai, supaya kolom yang sengaja
+    // dibiarkan kosong tidak disangka "belum diatur".
+    const box = $('#serverAktif');
+    if (!box) return;
+    const manual = String(Sync.Settings.get().serverUrl || '').trim();
+    const bawaan = String((window.APP_CONFIG && window.APP_CONFIG.serverUrl) || '').trim();
+    const aktif = Sync.baseUrl();
+    const belumAda = Sync.needsServerUrl();
+
+    box.classList.toggle('kosong', belumAda);
+    box.querySelector('strong').textContent = belumAda
+      ? 'Belum terhubung ke server mana pun'
+      : 'Sedang terhubung ke:';
+    $('#serverAktifUrl').textContent = belumAda ? '—' : aktif;
+    $('#serverAktifSumber').textContent = belumAda
+      ? 'Isi kolom di bawah dengan alamat server.'
+      : (manual ? 'Diisi manual di perangkat ini.'
+                : (bawaan ? 'Alamat bawaan aplikasi — tidak perlu diubah.'
+                          : 'Server tempat aplikasi ini dibuka.'));
   }
 
   async function refreshStorage() {
