@@ -19,7 +19,7 @@
 
   let guides = [];
   let current = 'home';
-  let form = { pos: 1, guide: null, crit: { idCard: null, uniform: null, etika: null }, catatan: '' };
+  let form = { pos: 1, guide: null, crit: { idCard: null, uniform: null, review: 0 }, catatan: '' };
   let historyFilter = 'all';
 
   /* ---------------------- Util ---------------------- */
@@ -216,13 +216,16 @@
   /* ---------------------- Form penilaian ---------------------- */
   function resetForm(keepPos = true) {
     const pos = keepPos ? form.pos : 1;
-    form = { pos, guide: null, crit: { idCard: null, uniform: null, etika: null }, catatan: '' };
+    form = { pos, guide: null, crit: { idCard: null, uniform: null, review: 0 }, catatan: '' };
     $('#posSelect').value = String(pos);
     $('#guideInput').value = '';
     $('#catatan').value = '';
     $('#guidePicked').classList.add('hidden');
     $$('.seg').forEach(b => b.classList.remove('on'));
-    $$('.criterion').forEach(c => c.classList.add('unset'));
+    $$('.criterion').forEach(c => {
+      if (c.dataset.crit !== 'review') c.classList.add('unset');
+    });
+    applyCritUI();
     saveDraft();
   }
 
@@ -243,10 +246,23 @@
     } catch {}
   }
 
+  const REVIEW_MAKS = 20;
+
   function applyCritUI() {
     $$('.criterion').forEach(c => {
       const k = c.dataset.crit;
       const v = form.crit[k];
+      if (k === 'review') {
+        const n = Math.max(0, Number(v) || 0);
+        const el = $('#reviewNilai');
+        if (el) el.textContent = String(n);
+        c.classList.remove('unset');            // 0 sudah merupakan jawaban sah
+        const kurang = c.querySelector('[data-step="-1"]');
+        const tambah = c.querySelector('[data-step="1"]');
+        if (kurang) kurang.toggleAttribute('disabled', n <= 0);
+        if (tambah) tambah.toggleAttribute('disabled', n >= REVIEW_MAKS);
+        return;
+      }
       c.classList.toggle('unset', v === null);
       c.querySelectorAll('.seg').forEach(b => b.classList.toggle('on', v !== null && String(+b.dataset.val) === String(+v)));
     });
@@ -262,8 +278,9 @@
     e.preventDefault();
     const g = findGuide($('#guideInput').value);
     if (!g) { toast('Pilih nama guide dulu', 'warn', '⚠️'); $('#guideInput').focus(); return; }
-    const missing = Object.keys(form.crit).filter(k => form.crit[k] === null);
-    if (missing.length) { toast('Lengkapi semua penilaian (Ya/Tidak)', 'warn', '⚠️'); return; }
+    // Review boleh 0; yang wajib dipilih hanya Uniform dan ID-Card
+    const missing = ['idCard', 'uniform'].filter(k => form.crit[k] === null);
+    if (missing.length) { toast('Pilih Ya/Tidak untuk ID-Card dan Uniform', 'warn', '⚠️'); return; }
 
     const evaluation = {
       evaluationId: uuid(),
@@ -271,7 +288,11 @@
       guideName: g.guideName,
       pos: Number($('#posSelect').value),
       timestamp: new Date().toISOString(),
-      criteria: { idCard: !!form.crit.idCard, uniform: !!form.crit.uniform, etika: !!form.crit.etika },
+      criteria: {
+        idCard: !!form.crit.idCard,
+        uniform: !!form.crit.uniform,
+        review: Math.max(0, Number(form.crit.review) || 0),
+      },
       catatan: $('#catatan').value.trim(),
       synced: false,
     };
@@ -312,7 +333,7 @@
         <span class="cbody">
           <span class="cname">${esc(e.guideName)}</span>
           <span class="cmeta">Pos ${esc(e.pos)} · ${esc(fmtTime(e.timestamp))} · ${e.synced ? 'Terkirim' : 'Menunggu sync'}</span>
-          <span class="badges">${b('ID', !!c.idCard)}${b('Uniform', !!c.uniform)}${b('Etika', !!c.etika)}</span>
+          <span class="badges">${b('ID', !!c.idCard)}${b('Uniform', !!c.uniform)}<span class="badge">Review ${Number(c.review) || 0}</span></span>
           ${e.catatan ? `<span class="cmeta">📝 ${esc(e.catatan)}</span>` : ''}
           ${e.lastError && !e.synced ? `<span class="cmeta">⚠️ ${esc(e.lastError)}</span>` : ''}
         </span>
@@ -323,13 +344,14 @@
   async function exportCsv() {
     const all = await DB.all();
     if (!all.length) { toast('Belum ada data untuk diexport', 'warn', '⚠️'); return; }
-    const head = ['evaluationId', 'waktu', 'pos', 'guideId', 'guideName', 'idCard', 'uniform', 'etika', 'catatan', 'status'];
+    // Angka 1/0 supaya kolomnya bisa langsung dijumlah, sama seperti rekap manual
+    const head = ['evaluationId', 'waktu', 'pos', 'guideId', 'guideName', 'uniform', 'idCard', 'review', 'catatan', 'status'];
     const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const rows = all.map(e => [
       e.evaluationId, e.timestamp, e.pos, e.guideId, e.guideName,
-      e.criteria?.idCard ? 'Ya' : 'Tidak',
-      e.criteria?.uniform ? 'Ya' : 'Tidak',
-      e.criteria?.etika ? 'Ya' : 'Tidak',
+      e.criteria?.uniform ? 1 : 0,
+      e.criteria?.idCard ? 1 : 0,
+      Number(e.criteria?.review) || 0,
       e.catatan || '', e.synced ? 'Terkirim' : 'Menunggu',
     ].map(q).join(','));
     const csv = '﻿' + [head.join(','), ...rows].join('\r\n');
@@ -451,9 +473,18 @@
     $('#catatan').addEventListener('input', e => { form.catatan = e.target.value; saveDraft(); });
 
     $$('.criterion').forEach(c => {
-      c.classList.add('unset');
+      if (c.dataset.crit !== 'review') c.classList.add('unset');
+
       c.querySelectorAll('.seg').forEach(btn => btn.addEventListener('click', () => {
         form.crit[c.dataset.crit] = Number(btn.dataset.val) === 1;
+        applyCritUI(); saveDraft(); haptic(15);
+        $('#draftNote').hidden = false;
+      }));
+
+      // Penghitung Review
+      c.querySelectorAll('.stepbtn').forEach(btn => btn.addEventListener('click', () => {
+        const n = Math.max(0, Number(form.crit.review) || 0) + Number(btn.dataset.step);
+        form.crit.review = Math.min(REVIEW_MAKS, Math.max(0, n));
         applyCritUI(); saveDraft(); haptic(15);
         $('#draftNote').hidden = false;
       }));

@@ -156,7 +156,7 @@
         criteria: {
           idCard: !!item.criteria.idCard,
           uniform: !!item.criteria.uniform,
-          etika: !!item.criteria.etika,
+          review: Math.max(0, Number(item.criteria.review) || 0),
         },
         catatan: item.catatan || '',
       };
