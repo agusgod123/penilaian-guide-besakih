@@ -107,6 +107,17 @@ setup();
 cek('setup() aman dijalankan dua kali (tidak menggandakan)',
   doc.getSheetByName('Guides').getLastRow() === JML_GUIDE + 1);
 
+// Spreadsheet lama yang masih memakai skema "lisensi" harus ikut diperbarui
+{
+  const gs = doc.getSheetByName('Guides');
+  gs.data = [['guideId', 'guideName', 'lisensi', 'aktif'], ['G-001', 'Guide Lama', 'HPI-001', true]];
+  setup();
+  const header = gs.getRange(1, 1, 1, 5).getValues()[0];
+  cek('setup() memperbarui tab Guides berskema lama',
+    header[2] === 'kategori' && header[3] === 'regu' && gs.getLastRow() === JML_GUIDE + 1,
+    header.join(' | '));
+}
+
 const health = J(doGet({ parameter: { action: 'health' } }));
 cek('health membalas ok & total 0', health.ok === true && health.total === 0);
 

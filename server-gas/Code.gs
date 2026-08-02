@@ -360,10 +360,14 @@ function setup() {
   var ss = ss_();
 
   // --- Tab Guides ---
+  // Ditulis ulang bila tab masih kosong ATAU headernya belum sesuai skema
+  // terbaru (mis. spreadsheet lama yang masih memakai kolom "lisensi").
   var g = ss.getSheetByName(SHEET_GUIDES) || ss.insertSheet(SHEET_GUIDES);
-  if (g.getLastRow() === 0) {
-    pasangHeader_(g, HEADER_GUIDES, [90, 230, 130, 110, 70]);
-    g.getRange(2, 1, GUIDES_AWAL.length, HEADER_GUIDES.length).setValues(GUIDES_AWAL);
+  var headerSekarang = g.getLastRow() > 0
+    ? g.getRange(1, 1, 1, HEADER_GUIDES.length).getValues()[0].join('|')
+    : '';
+  if (g.getLastRow() === 0 || headerSekarang !== HEADER_GUIDES.join('|')) {
+    resetGuides();
   }
 
   // --- Tab Evaluations ---
