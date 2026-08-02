@@ -464,8 +464,23 @@
     showTutorial(false);
     Sync.start();
 
+    // Service worker + pembaruan otomatis.
+    // Strategi cache-first membuat perangkat bisa memakai versi lama setelah
+    // aplikasi di-deploy ulang; blok ini memuat ulang halaman begitu versi baru
+    // mengambil alih, sehingga staff tidak perlu membersihkan cache manual.
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(e => console.warn('[sw]', e));
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return;
+        reloading = true;
+        location.reload();
+      });
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => {
+          reg.update();
+          setInterval(() => reg.update(), 60 * 60 * 1000); // cek pembaruan tiap jam
+        })
+        .catch(e => console.warn('[sw]', e));
     }
   }
 
