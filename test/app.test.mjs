@@ -79,6 +79,50 @@ check('Tutorial dapat diselesaikan & tidak muncul lagi',
 const nOpt = $$('#guideList option').length;
 check('AC-2 daftar guide >= 10 & dapat dipilih', nOpt >= 10, `${nOpt} guide dari server`);
 
+/* ---------- Filter Kategori & Regu ---------- */
+{
+  const semua = $$('#guideList option').length;
+  const pilih = (kat, regu) => {
+    setVal($('#filterKategori'), kat);
+    setVal($('#filterRegu'), regu);
+    return $$('#guideList option').length;
+  };
+
+  const asing = pilih('Asing', '');
+  const domestik = pilih('Domestik', '');
+  check('Filter kategori memperkecil daftar guide',
+    asing > 0 && domestik > 0 && asing < semua && domestik < semua,
+    `semua ${semua} · Asing ${asing} · Domestik ${domestik}`);
+
+  const a1 = pilih('Asing', '1');
+  const a2 = pilih('Asing', '2');
+  check('Filter regu mempersempit lagi', a1 > 0 && a2 > 0 && a1 < asing && a2 < asing,
+    `Asing-1 ${a1} · Asing-2 ${a2}`);
+
+  // Guide yang merangkap dua regu harus muncul di keduanya
+  const daftar = (await (await fetch(BASE + '/api/guides')).json()).guides;
+  const rangkap = daftar.find(g => (g.regu || '').indexOf(',') > -1);
+  if (rangkap) {
+    const kode = rangkap.regu.split(',').map(s => s.trim());
+    const munculDiSemua = kode.every(k => {
+      pilih(k[0] === 'A' ? 'Asing' : 'Domestik', k.slice(1));
+      return $$('#guideList option').some(o => o.value === rangkap.guideName);
+    });
+    check('Guide merangkap regu muncul di setiap regunya', munculDiSemua,
+      `${rangkap.guideName} (${rangkap.regu})`);
+  }
+
+  pilih('', '');
+  check('Filter dikosongkan menampilkan seluruh guide', $$('#guideList option').length === semua);
+
+  // Filter tersimpan agar tidak perlu diatur ulang
+  pilih('Domestik', '2');
+  check('Pilihan filter tersimpan di Pengaturan',
+    window.Sync.Settings.get().filterKategori === 'Domestik' &&
+    window.Sync.Settings.get().filterRegu === '2');
+  pilih('', '');
+}
+
 /* ---------- AC-6 burger menu ---------- */
 click($('#btnMenu'));
 check('AC-6 burger menu terbuka', !$('#drawer').hidden && $$('.navitem').length === 6);
@@ -109,11 +153,13 @@ let counts = await window.DB.counts();
 check('AC-3 penilaian tersimpan di IndexedDB', counts.total === 1, `${counts.total} entri`);
 
 const saved = (await window.DB.all())[0];
+const dariServer = (await (await fetch(BASE + '/api/guides')).json()).guides;
+const seharusnya = dariServer.find(g => g.guideName === 'I Wayan Suparta');
 check('Model data sesuai PRD §7',
-  !!saved.evaluationId && saved.guideId === 'G-001' && saved.pos === 1 &&
+  !!saved.evaluationId && saved.guideId === seharusnya.guideId && saved.pos === 1 &&
   !isNaN(Date.parse(saved.timestamp)) &&
   saved.criteria.idCard === true && saved.criteria.uniform === false && saved.criteria.etika === true,
-  JSON.stringify({ pos: saved.pos, criteria: saved.criteria }));
+  JSON.stringify({ guideId: saved.guideId, pos: saved.pos, criteria: saved.criteria }));
 
 /* ---------- Enkripsi ---------- */
 check('Enkripsi AES-256-GCM aktif', window.DB.isEncryptionActive() === true);
@@ -144,7 +190,7 @@ $('#formEval').dispatchEvent(new window.Event('submit', { bubbles: true, cancela
 await sleep(300);
 check('Guide tidak valid ditolak (tidak tersimpan)', (await window.DB.counts()).total === 1);
 
-setVal($('#guideInput'), 'Ni Made Ariani');
+setVal($('#guideInput'), 'I Wayan Ardana');
 $('#formEval').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
 await sleep(300);
 check('Kriteria belum lengkap ditolak', (await window.DB.counts()).total === 1);
@@ -239,7 +285,7 @@ check('Pemulihan otomatis dari cadangan berfungsi', restored === 2 && (await win
 window.Sync.Settings.set({ serverUrl: 'http://127.0.0.1:59999' });
 const evalId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 await window.DB.save({
-  evaluationId: evalId, guideId: 'G-003', guideName: 'I Ketut Sudarsana', pos: 3,
+  evaluationId: evalId, guideId: 'G-003', guideName: 'I Gede Budiarsana', pos: 3,
   timestamp: new Date().toISOString(), criteria: { idCard: true, uniform: true, etika: false }, catatan: '',
 });
 const failRes = await window.Sync.syncNow({ force: true });
@@ -254,7 +300,7 @@ const before = (await (await fetch(BASE + '/api/health')).json()).total;
 await fetch(BASE + '/api/evaluations', {
   method: 'POST', headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    evaluationId: evalId, guideId: 'G-003', guideName: 'I Ketut Sudarsana', pos: 3,
+    evaluationId: evalId, guideId: 'G-003', guideName: 'I Gede Budiarsana', pos: 3,
     timestamp: new Date().toISOString(), criteria: { idCard: true, uniform: true, etika: false },
   }),
 });
