@@ -8,6 +8,7 @@
   "scripts": {
     "start": "node server/server.js",
     "test": "node test/app.test.mjs",
+    "test:gas": "node server-gas/test-gas.mjs",
     "test:browser": "node test/e2e.mjs"
   },
   "engines": {

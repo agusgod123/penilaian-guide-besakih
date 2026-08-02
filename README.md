@@ -45,7 +45,29 @@ Setiap push ke `main` yang menyentuh `public/` akan otomatis mem-publish situs k
 `https://<username>.github.io/penilaian-guide-besakih/`. Dari alamat itu aplikasi
 sudah bisa di-install sebagai PWA di HP staff (HTTPS aktif).
 
-### 2. Backend → Render (gratis)
+### 2a. Backend → Google Spreadsheet (gratis, **disarankan**)
+
+Spreadsheet jadi database, Apps Script jadi endpoint REST-nya. Data persisten,
+dan rekapnya langsung bisa di-PivotTable untuk laporan.
+
+1. Buat spreadsheet baru → **Extensions → Apps Script**
+2. Tempel isi `server-gas/Code.gs`, simpan
+3. Jalankan fungsi `setup` → tab `Guides`, `Evaluations`, `Petunjuk` dibuat otomatis
+   beserta data guide awal
+4. **Deploy → New deployment → Web app** — *Execute as*: **Me**, *Who has access*: **Anyone**
+5. Salin URL `/exec`, isikan di aplikasi lewat **Pengaturan → Alamat Server**
+
+Aplikasi mendeteksi jenis backend dari URL secara otomatis: `script.google.com`
+→ mode Apps Script (query parameter + `Content-Type: text/plain` agar lolos CORS),
+selain itu → mode REST biasa.
+
+> **Jangan commit URL `/exec` ke repo publik.** Web app di-deploy sebagai "Anyone",
+> jadi URL itulah satu-satunya pembatas. Biarkan `config.js` kosong dan isikan
+> alamatnya per perangkat lewat menu Pengaturan.
+
+Detail lengkap, termasuk batasan dan alternatifnya: [`docs/RENCANA-BACKEND-GOOGLE-SHEETS.md`](docs/RENCANA-BACKEND-GOOGLE-SHEETS.md).
+
+### 2b. Backend → Render (gratis)
 
 Repo berisi `render.yaml`. Di [render.com](https://render.com): **New → Blueprint →
 pilih repo ini**. Render membaca blueprint dan menjalankan `node server/server.js`.
@@ -94,8 +116,11 @@ app/
 │  ├─ sw.js            Service worker (cache-first app shell)
 │  ├─ manifest.webmanifest
 │  └─ icons/
+├─ server-gas/
+│  ├─ Code.gs          Backend Google Apps Script (spreadsheet sebagai database)
+│  └─ test-gas.mjs     20 pemeriksaan logika Code.gs di luar Google
 ├─ test/
-│  ├─ app.test.mjs     37 pemeriksaan otomatis (jsdom + fake-indexeddb)
+│  ├─ app.test.mjs     48 pemeriksaan otomatis (jsdom + fake-indexeddb)
 │  └─ e2e.mjs          Uji browser sungguhan (opsional, butuh Puppeteer)
 ├─ render.yaml         Blueprint deploy backend ke Render
 └─ .github/workflows/  Deploy otomatis PWA ke GitHub Pages
@@ -162,9 +187,17 @@ node server/server.js &   # server harus hidup
 npm test
 ```
 
-Menjalankan 37 pemeriksaan yang memuat `index.html` sungguhan beserta seluruh
+Menjalankan 48 pemeriksaan yang memuat `index.html` sungguhan beserta seluruh
 skripnya, dan menguji setiap Acceptance Criteria PRD §9 termasuk simulasi putus
-jaringan, antrean sync, retry, enkripsi, dan idempotensi server.
+jaringan, antrean sync, retry, enkripsi, idempotensi server, serta adapter
+Google Apps Script.
+
+Logika backend Apps Script diuji terpisah tanpa perlu Google (memakai tiruan
+`SpreadsheetApp`, `LockService`, `ContentService`):
+
+```bash
+npm run test:gas
+```
 
 Uji browser sungguhan (opsional, memerlukan Chrome via Puppeteer):
 
