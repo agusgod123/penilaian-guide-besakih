@@ -42,7 +42,8 @@ var SHEET_GUIDES  = 'Guides';
 var SHEET_INFO    = 'Petunjuk';
 
 var HEADER_EVAL   = ['evaluationId', 'timestamp', 'pos', 'guideId', 'guideName',
-                     'uniform', 'idCard', 'review', 'catatan', 'receivedAt'];
+                     'uniform', 'idCard', 'review', 'etika', 'catatan', 'receivedAt'];
+var LEBAR_EVAL    = [290, 190, 50, 90, 200, 80, 70, 70, 70, 240, 190];
 var HEADER_GUIDES = ['guideId', 'guideName', 'kategori', 'regu', 'aktif'];
 
 // Batas wajar, disamakan dengan aplikasi supaya kiriman aneh tidak masuk rekap.
@@ -398,7 +399,7 @@ function setup() {
   // --- Tab Evaluations ---
   var e = ss.getSheetByName(SHEET_EVAL) || ss.insertSheet(SHEET_EVAL);
   if (e.getLastRow() === 0) {
-    pasangHeader_(e, HEADER_EVAL, [290, 190, 50, 90, 200, 80, 70, 70, 240, 190]);
+    pasangHeader_(e, HEADER_EVAL, LEBAR_EVAL);
   } else {
     migrasiEvaluations_(e);
   }
@@ -466,34 +467,44 @@ function setup() {
  * Nilai lama dipindahkan, tidak dihapus.
  */
 function migrasiEvaluations_(e) {
-  var lebar = HEADER_EVAL.length;
-  var header = e.getRange(1, 1, 1, lebar).getValues()[0].map(function (x) {
+  var lebarLama = Math.max(e.getLastColumn(), 1);
+  var header = e.getRange(1, 1, 1, lebarLama).getValues()[0].map(function (x) {
     return String(x || '').trim();
   });
   if (header.join('|') === HEADER_EVAL.join('|')) return false;   // sudah sesuai
 
-  var idxUniformLama = header.indexOf('uniform');
-  var idxIdLama = header.indexOf('idCard');
-  var idxEtika = header.indexOf('etika');
-  var baris = e.getLastRow() - 1;
+  // Dipetakan berdasarkan NAMA kolom, bukan posisi. Skema tab ini sudah
+  // berganti beberapa kali — kolom bertambah, urutan uniform/idCard sempat
+  // tertukar — dan pemetaan posisional akan salah pada salah satu di antaranya.
+  var idx = {};
+  for (var h = 0; h < header.length; h++) if (header[h]) idx[header[h]] = h;
 
-  if (baris > 0 && idxUniformLama > -1 && idxIdLama > -1) {
-    var data = e.getRange(2, 1, baris, lebar).getValues();
+  var jmlBaris = e.getLastRow() - 1;
+  var baru = [];
+  if (jmlBaris > 0) {
+    var data = e.getRange(2, 1, jmlBaris, lebarLama).getValues();
     for (var i = 0; i < data.length; i++) {
       var r = data[i];
-      var uniform = r[idxUniformLama] === true || Number(r[idxUniformLama]) === 1 ? 1 : 0;
-      var idCard = r[idxIdLama] === true || Number(r[idxIdLama]) === 1 ? 1 : 0;
-      var review = 0;
-      if (idxEtika > -1) review = (r[idxEtika] === true || Number(r[idxEtika]) === 1) ? 1 : 0;
-      r[5] = uniform;   // posisi baru: uniform
-      r[6] = idCard;    // posisi baru: idCard
-      r[7] = review;    // posisi baru: review
+      var ambil = function (nama) { return idx[nama] === undefined ? '' : r[idx[nama]]; };
+      var yaTidak = function (v) { return (v === true || Number(v) === 1) ? 1 : 0; };
+      var angka = function (v) {
+        if (v === true) return 1;                    // skema paling lama: TRUE/FALSE
+        return Math.min(REVIEW_MAKS, Math.max(0, Number(v) || 0));
+      };
+      baru.push([
+        ambil('evaluationId'), ambil('timestamp'), Number(ambil('pos')) || 0,
+        ambil('guideId'), ambil('guideName'),
+        yaTidak(ambil('uniform')), yaTidak(ambil('idCard')),
+        angka(ambil('review')), angka(ambil('etika')),
+        ambil('catatan'), ambil('receivedAt')
+      ]);
     }
-    e.getRange(2, 1, data.length, lebar).setValues(data);
   }
 
-  pasangHeader_(e, HEADER_EVAL, [290, 190, 50, 90, 200, 80, 70, 70, 240, 190]);
-  Logger.log('Tab Evaluations dimigrasikan ke skema uniform/idCard/review.');
+  e.clearContents();
+  pasangHeader_(e, HEADER_EVAL, LEBAR_EVAL);
+  if (baru.length) e.getRange(2, 1, baru.length, HEADER_EVAL.length).setValues(baru);
+  Logger.log('Tab Evaluations dimigrasikan ke skema ' + HEADER_EVAL.join('/') + '.');
   return true;
 }
 
@@ -635,6 +646,7 @@ function doPost(e) {
         it.criteria.uniform ? 1 : 0,
         it.criteria.idCard ? 1 : 0,
         Math.min(REVIEW_MAKS, Math.max(0, Number(it.criteria.review) || 0)),
+        Math.min(REVIEW_MAKS, Math.max(0, Number(it.criteria.etika) || 0)),
         String(it.catatan || '').slice(0, CATATAN_MAKS),
         new Date().toISOString()
       ]);
@@ -688,6 +700,13 @@ function validasi_(it, namaResmi) {
     });
     var rv = Number(it.criteria.review);
     if (!isFinite(rv) || rv < 0) errs.push('criteria.review harus angka >= 0');
+    // Etika BOLEH tidak dikirim dan dianggap 0. Perangkat yang belum sempat
+    // memperbarui aplikasinya tetap bisa mengirim — kalau ini diwajibkan,
+    // penilaiannya akan ditolak permanen dan datanya hilang.
+    if (it.criteria.etika !== undefined && it.criteria.etika !== null) {
+      var et = Number(it.criteria.etika);
+      if (!isFinite(et) || et < 0) errs.push('criteria.etika harus angka >= 0');
+    }
   }
   return errs;
 }
@@ -825,17 +844,19 @@ function rangkumBulan_(bulan) {
     var uniform = Number(r[5]) ? 1 : 0;
     var idCard = Number(r[6]) ? 1 : 0;
     var review = Math.max(0, Number(r[7]) || 0);
+    var etika = Math.max(0, Number(r[8]) || 0);
 
     setTanggal[tgl] = true;
 
     if (!harian[gid]) harian[gid] = {};
     var sel = harian[gid][tgl];
     if (!sel) {
-      harian[gid][tgl] = { uniform: uniform, idCard: idCard, review: review };
+      harian[gid][tgl] = { uniform: uniform, idCard: idCard, review: review, etika: etika };
     } else {
       sel.uniform = Math.min(sel.uniform, uniform);   // paling buruk
       sel.idCard = Math.min(sel.idCard, idCard);      // paling buruk
       sel.review = Math.max(sel.review, review);      // jangan hilangkan review
+      sel.etika = Math.max(sel.etika, etika);         // jangan hilangkan etika
     }
 
     // Gabungan pada tingkat (guide, pos, tanggal) — dasar hitungan kehadiran
@@ -843,11 +864,12 @@ function rangkumBulan_(bulan) {
     if (!perPosHari[gid][pos]) perPosHari[gid][pos] = {};
     var ph = perPosHari[gid][pos][tgl];
     if (!ph) {
-      perPosHari[gid][pos][tgl] = { uniform: uniform, idCard: idCard, review: review };
+      perPosHari[gid][pos][tgl] = { uniform: uniform, idCard: idCard, review: review, etika: etika };
     } else {
       ph.uniform = Math.min(ph.uniform, uniform);
       ph.idCard = Math.min(ph.idCard, idCard);
       ph.review = Math.max(ph.review, review);
+      ph.etika = Math.max(ph.etika, etika);
     }
   }
 
@@ -858,15 +880,16 @@ function rangkumBulan_(bulan) {
     kehadiran[g] = {};
     for (var p in perPosHari[g]) {
       var hari = perPosHari[g][p];
-      var jml = 0, jUniform = 0, jIdCard = 0, jReview = 0;
+      var jml = 0, jUniform = 0, jIdCard = 0, jReview = 0, jEtika = 0;
       for (var t in hari) {
         jml++;                                   // satu hari di pos ini = satu kehadiran
         jUniform += hari[t].uniform;
         jIdCard += hari[t].idCard;
         jReview += hari[t].review;
+        jEtika += hari[t].etika;
         kehadiran[g][t] = (kehadiran[g][t] || 0) + 1;
       }
-      perPos[g][p] = { jml: jml, uniform: jUniform, idCard: jIdCard, review: jReview };
+      perPos[g][p] = { jml: jml, uniform: jUniform, idCard: jIdCard, review: jReview, etika: jEtika };
     }
   }
 
@@ -916,7 +939,7 @@ function bangunRekapRegu_(info, bulan, ringkasan, guides) {
   var tanggal = Object.keys(punya).sort();
 
   var sh = siapkanTab_(namaTabRekap_(info.kode, bulan));
-  var jmlKolom = 1 + (tanggal.length + 1) * 3;   // nama + (tanggal + TOTAL) x 3
+  var jmlKolom = 1 + (tanggal.length + 1) * 4;   // nama + (tanggal + TOTAL) x 4
 
   // --- baris 1: judul ---
   // Sengaja TIDAK di-merge: sel gabungan yang melintasi batas kolom beku
@@ -937,20 +960,20 @@ function bangunRekapRegu_(info, bulan, ringkasan, guides) {
   sh.getRange(2, 1).setValue('REGU: ' + info.nomor + ' (' + info.kategori + ')')
     .setFontWeight('bold');
   for (var i = 0; i < tanggal.length; i++) {
-    var kol = 2 + i * 3;
+    var kol = 2 + i * 4;
     var bagian = tanggal[i].split('-');
-    sh.getRange(2, kol, 1, 3).merge()
+    sh.getRange(2, kol, 1, 4).merge()
       .setValue('TGL: ' + Number(bagian[2]) + '-' + Number(bagian[1]) + '-' + bagian[0])
       .setHorizontalAlignment('center').setFontWeight('bold');
   }
-  var kolTotal = 2 + tanggal.length * 3;
-  sh.getRange(2, kolTotal, 1, 3).merge().setValue('TOTAL')
+  var kolTotal = 2 + tanggal.length * 4;
+  sh.getRange(2, kolTotal, 1, 4).merge().setValue('TOTAL')
     .setHorizontalAlignment('center').setFontWeight('bold')
     .setBackground('#C8942B').setFontColor('#FFFFFF');
 
   // --- baris 3: sub-header ---
   var head = ['NAME'];
-  for (var t = 0; t <= tanggal.length; t++) head.push('UNI FORM', 'ID', 'REVIEW');
+  for (var t = 0; t <= tanggal.length; t++) head.push('UNI FORM', 'ID', 'REVIEW', 'ETIKA');
   sh.getRange(3, 1, 1, head.length).setValues([head])
     .setFontWeight('bold').setFontColor('#FFFFFF').setBackground('#0B5D3B')
     .setHorizontalAlignment('center');
@@ -965,10 +988,10 @@ function bangunRekapRegu_(info, bulan, ringkasan, guides) {
       var h = ringkasan.harian[g.guideId] || {};
       for (var d = 0; d < tanggal.length; d++) {
         var sel = h[tanggal[d]];
-        if (sel) { row.push(sel.uniform, sel.idCard, sel.review); terisi++; }
-        else row.push('', '', '');   // kosong = tidak bertugas / tidak diperiksa
+        if (sel) { row.push(sel.uniform, sel.idCard, sel.review, sel.etika || 0); terisi++; }
+        else row.push('', '', '', '');   // kosong = tidak bertugas / tidak diperiksa
       }
-      row.push('', '', '');          // tempat rumus TOTAL
+      row.push('', '', '', '');          // tempat rumus TOTAL
       baris.push(row);
     }
     sh.getRange(5, 1, baris.length, head.length).setValues(baris);
@@ -979,16 +1002,16 @@ function bangunRekapRegu_(info, bulan, ringkasan, guides) {
       for (var b = 0; b < anggota.length; b++) {
         var nb = 5 + b;
         var satu = [];
-        for (var k = 0; k < 3; k++) {
+        for (var k = 0; k < 4; k++) {
           var sel2 = [];
           for (var dd = 0; dd < tanggal.length; dd++) {
-            sel2.push(kolomHuruf_(2 + dd * 3 + k) + nb);
+            sel2.push(kolomHuruf_(2 + dd * 4 + k) + nb);
           }
           satu.push('=SUM(' + sel2.join(',') + ')');
         }
         rumus.push(satu);
       }
-      sh.getRange(5, kolTotal, rumus.length, 3).setFormulas(rumus)
+      sh.getRange(5, kolTotal, rumus.length, 4).setFormulas(rumus)
         .setFontWeight('bold').setBackground('#FFF6E0');
     }
   }
@@ -1135,7 +1158,7 @@ function bangunRekapPerPos_(bulan, ringkasan, guides) {
   var sh = siapkanTab_('Rekap per Pos ' + bulan);
   var head = ['NAME', 'REGU'];
   for (var p = 1; p <= 3; p++) {
-    head.push('P' + p + ' Hadir', 'P' + p + ' Uniform', 'P' + p + ' ID', 'P' + p + ' Review');
+    head.push('P' + p + ' Hadir', 'P' + p + ' Uniform', 'P' + p + ' ID', 'P' + p + ' Review', 'P' + p + ' Etika');
   }
   head.push('Total Kehadiran');
 
@@ -1157,15 +1180,15 @@ function bangunRekapPerPos_(bulan, ringkasan, guides) {
     var row = [g.guideName, g.regu.join(', ')];
     var total = 0;
     for (var pos = 1; pos <= 3; pos++) {
-      var d = pp[pos] || { jml: 0, uniform: 0, idCard: 0, review: 0 };
-      row.push(d.jml, d.uniform, d.idCard, d.review);
+      var d = pp[pos] || { jml: 0, uniform: 0, idCard: 0, review: 0, etika: 0 };
+      row.push(d.jml, d.uniform, d.idCard, d.review, d.etika || 0);
       total += d.jml;
     }
     row.push(total);
     baris.push(row);
   }
   if (baris.length) {
-    baris.sort(function (a, b) { return b[14] - a[14]; });   // paling sering dinilai di atas
+    baris.sort(function (a, b) { return b[17] - a[17]; });   // paling sering dinilai di atas
     sh.getRange(3, 1, baris.length, head.length).setValues(baris);
   }
   sh.setFrozenRows(2);

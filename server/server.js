@@ -71,16 +71,22 @@ function validateEvaluation(e) {
     for (const k of ['idCard', 'uniform']) {
       if (typeof c[k] !== 'boolean') errors.push(`criteria.${k} harus boolean`);
     }
-    // Review berupa angka (0 = tidak ada review), bukan ya/tidak
+    // Review & Etika berupa angka (0 = tidak ada), bukan ya/tidak
     if (!Number.isFinite(Number(c.review)) || Number(c.review) < 0) {
       errors.push('criteria.review harus angka >= 0');
+    }
+    // Etika boleh tidak dikirim (dianggap 0) supaya perangkat berversi lama
+    // tidak ditolak permanen dan datanya hilang.
+    if (c.etika !== undefined && c.etika !== null &&
+        (!Number.isFinite(Number(c.etika)) || Number(c.etika) < 0)) {
+      errors.push('criteria.etika harus angka >= 0');
     }
   }
   return errors;
 }
 
 function toCsv(rows) {
-  const head = ['evaluationId', 'timestamp', 'pos', 'guideId', 'guideName', 'uniform', 'idCard', 'review', 'catatan'];
+  const head = ['evaluationId', 'timestamp', 'pos', 'guideId', 'guideName', 'uniform', 'idCard', 'review', 'etika', 'catatan'];
   const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines = [head.join(',')];
   for (const r of rows) {
@@ -89,6 +95,7 @@ function toCsv(rows) {
       r.criteria.uniform ? 1 : 0,
       r.criteria.idCard ? 1 : 0,
       Number(r.criteria.review) || 0,
+      Number(r.criteria.etika) || 0,
       r.catatan || '',
     ].map(esc).join(','));
   }

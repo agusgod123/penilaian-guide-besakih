@@ -322,7 +322,8 @@ check('Rincian membawa waktu UTC & evaluationId untuk cross-check ke spreadsheet
   /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(csv));
 check('Angka tidak dikutip agar langsung bisa dijumlah di Excel',
   !/;"[01]"/.test(csv));
-check('Rekap CSV membawa kolom KEHADIRAN', csv.includes('KEHADIRAN'));
+check('Rekap CSV membawa kolom KEHADIRAN & ETIKA',
+  csv.includes('KEHADIRAN') && csv.includes('ETIKA'));
 check('Rekap per pos memakai satuan guide-hari, bukan jumlah penilaian',
   csv.includes('Hadir (guide-hari)'));
 
@@ -644,10 +645,11 @@ check('Pengiriman ulang tidak menggandakan data di server (append-only)', before
   const barisRinci = csvKembar.slice(batas).split('\r\n')
     .filter(b => b.includes(NAMA) && /^\d{4}-\d{2}-\d{2};/.test(b));
   const kolom = (barisRekap[0] || '').split(';');
+  // Kolom: Tanggal|Nama|guideId|Regu|UNI FORM|ID|REVIEW|ETIKA|KEHADIRAN|Pos|Jml
   check('Dua pos berbeda pada hari yang sama = KEHADIRAN 2',
-    barisRekap.length === 1 && barisRinci.length === 2 && kolom[7] === '2',
+    barisRekap.length === 1 && barisRinci.length === 2 && kolom[8] === '2',
     barisRekap[0]
-      ? `kehadiran ${kolom[7]} dari pos "${kolom[8]}", ${barisRinci.length} baris rincian`
+      ? `kehadiran ${kolom[8]} dari pos "${kolom[9]}", ${barisRinci.length} baris rincian`
       : 'baris rekap tidak ketemu');
 }
 

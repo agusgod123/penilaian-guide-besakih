@@ -19,7 +19,7 @@
 
   let guides = [];
   let current = 'home';
-  let form = { pos: 1, guide: null, crit: { idCard: null, uniform: null, review: 0 }, catatan: '' };
+  let form = { pos: 1, guide: null, crit: { idCard: null, uniform: null, review: 0, etika: 0 }, catatan: '' };
   let historyFilter = 'all';
 
   /* ---------------------- Util ---------------------- */
@@ -252,7 +252,7 @@
   /* ---------------------- Form penilaian ---------------------- */
   function resetForm(keepPos = true) {
     const pos = keepPos ? form.pos : 1;
-    form = { pos, guide: null, crit: { idCard: null, uniform: null, review: 0 }, catatan: '' };
+    form = { pos, guide: null, crit: { idCard: null, uniform: null, review: 0, etika: 0 }, catatan: '' };
     $('#posSelect').value = String(pos);
     $('#guideInput').value = '';
     $('#catatan').value = '';
@@ -260,7 +260,7 @@
     tampilkanKandidat(null);
     $$('.seg').forEach(b => b.classList.remove('on'));
     $$('.criterion').forEach(c => {
-      if (c.dataset.crit !== 'review') c.classList.add('unset');
+      if (!KRIT_ANGKA[c.dataset.crit]) c.classList.add('unset');
     });
     applyCritUI();
     saveDraft();
@@ -284,14 +284,16 @@
   }
 
   const REVIEW_MAKS = 20;
+  // Kriteria yang diisi angka lewat tombol - dan +, bukan Ya/Tidak
+  const KRIT_ANGKA = { review: '#reviewNilai', etika: '#etikaNilai' };
 
   function applyCritUI() {
     $$('.criterion').forEach(c => {
       const k = c.dataset.crit;
       const v = form.crit[k];
-      if (k === 'review') {
+      if (KRIT_ANGKA[k]) {
         const n = Math.max(0, Number(v) || 0);
-        const el = $('#reviewNilai');
+        const el = $(KRIT_ANGKA[k]);
         if (el) el.textContent = String(n);
         c.classList.remove('unset');            // 0 sudah merupakan jawaban sah
         const kurang = c.querySelector('[data-step="-1"]');
@@ -390,6 +392,7 @@
         idCard: !!form.crit.idCard,
         uniform: !!form.crit.uniform,
         review: Math.max(0, Number(form.crit.review) || 0),
+        etika: Math.max(0, Number(form.crit.etika) || 0),
       },
       catatan: $('#catatan').value.trim(),
       synced: false,
@@ -431,7 +434,8 @@
       // saja menuduh guide yang bersangkutan tidak patuh.
       const nilai = e.corrupt
         ? '<span class="badge bad">nilai tidak terbaca di perangkat ini</span>'
-        : `${b('ID', !!c.idCard)}${b('Uniform', !!c.uniform)}<span class="badge">Review ${Number(c.review) || 0}</span>`;
+        : `${b('ID', !!c.idCard)}${b('Uniform', !!c.uniform)}<span class="badge">Review ${Number(c.review) || 0}</span>` +
+          `<span class="badge">Etika ${Number(c.etika) || 0}</span>`;
       const keterangan = e.corrupt
         ? `<span class="cmeta">Sudah terkirim ke server — lihat spreadsheet, kode ${esc(String(e.evaluationId).slice(0, 8))}</span>`
         : '';
@@ -491,6 +495,7 @@
       const u = c.uniform ? 1 : 0;
       const i = c.idCard ? 1 : 0;
       const r = Math.max(0, Number(c.review) || 0);
+      const et = Math.max(0, Number(c.etika) || 0);
       const tgl = DB.tanggalLokal(e.timestamp);
       const pos = Number(e.pos) || 0;
 
@@ -498,11 +503,13 @@
       const h = harian.get(kunci);
       if (!h) {
         harian.set(kunci, { tgl, guideId: e.guideId, guideName: e.guideName,
-                            uniform: u, idCard: i, review: r, pos: new Set([pos]), jml: 1 });
+                            uniform: u, idCard: i, review: r, etika: et,
+                            pos: new Set([pos]), jml: 1 });
       } else {
         h.uniform = Math.min(h.uniform, u);
         h.idCard = Math.min(h.idCard, i);
         h.review = Math.max(h.review, r);
+        h.etika = Math.max(h.etika, et);
         h.pos.add(pos);
         h.jml++;
       }
@@ -511,11 +518,12 @@
       // di pos yang sama tidak terhitung sebagai kehadiran kedua.
       const kp = `${e.guideId}|${pos}|${tgl}`;
       const ph = perPosHari.get(kp);
-      if (!ph) perPosHari.set(kp, { pos, uniform: u, idCard: i, review: r });
+      if (!ph) perPosHari.set(kp, { pos, uniform: u, idCard: i, review: r, etika: et });
       else {
         ph.uniform = Math.min(ph.uniform, u);
         ph.idCard = Math.min(ph.idCard, i);
         ph.review = Math.max(ph.review, r);
+        ph.etika = Math.max(ph.etika, et);
       }
 
       const t = perTgl.get(tgl) || { tgl, jml: 0, guides: new Set(), hadir: 0 };
@@ -525,8 +533,9 @@
 
     const perPos = new Map();
     for (const ph of perPosHari.values()) {
-      const p = perPos.get(ph.pos) || { pos: ph.pos, hadir: 0, uniform: 0, idCard: 0, review: 0 };
-      p.hadir++; p.uniform += ph.uniform; p.idCard += ph.idCard; p.review += ph.review;
+      const p = perPos.get(ph.pos) || { pos: ph.pos, hadir: 0, uniform: 0, idCard: 0, review: 0, etika: 0 };
+      p.hadir++; p.uniform += ph.uniform; p.idCard += ph.idCard;
+      p.review += ph.review; p.etika += ph.etika;
       perPos.set(ph.pos, p);
     }
     for (const h of harian.values()) {
@@ -568,18 +577,18 @@
     judul('REKAP HARIAN PER GUIDE — cocokkan dengan tab Rekap A1/A2/D1/D2 di spreadsheet');
     out.push(barisCsv(['(Bila satu guide dinilai beberapa kali sehari: UNI FORM & ID diambil yang paling buruk, REVIEW yang tertinggi)']));
     out.push(barisCsv(['(KEHADIRAN = berapa pos yang memeriksa hari itu. Dinilai dua kali di pos yang sama tetap dihitung 1)']));
-    out.push(barisCsv(['Tanggal', 'Nama Guide', 'guideId', 'Regu', 'UNI FORM', 'ID', 'REVIEW',
+    out.push(barisCsv(['Tanggal', 'Nama Guide', 'guideId', 'Regu', 'UNI FORM', 'ID', 'REVIEW', 'ETIKA',
                        'KEHADIRAN', 'Dinilai di Pos', 'Jumlah Penilaian']));
     harian.forEach(h => out.push(barisCsv([
       h.tgl, h.guideName, h.guideId, reguGuide(h.guideId),
-      h.uniform, h.idCard, h.review,
+      h.uniform, h.idCard, h.review, h.etika,
       h.pos.size, [...h.pos].sort().join(' & '), h.jml,
     ])));
 
     judul('REKAP PER POS PEMERIKSAAN');
     out.push(barisCsv(['(Hadir dihitung per guide per hari — bukan jumlah penilaian)']));
-    out.push(barisCsv(['Pos', 'Hadir (guide-hari)', 'Uniform Sesuai', 'ID Sesuai', 'Total Review']));
-    perPos.forEach(p => out.push(barisCsv([p.pos, p.hadir, p.uniform, p.idCard, p.review])));
+    out.push(barisCsv(['Pos', 'Hadir (guide-hari)', 'Uniform Sesuai', 'ID Sesuai', 'Total Review', 'Total Etika']));
+    perPos.forEach(p => out.push(barisCsv([p.pos, p.hadir, p.uniform, p.idCard, p.review, p.etika])));
 
     judul('REKAP PER TANGGAL');
     out.push(barisCsv(['Tanggal', 'Total Kehadiran', 'Guide Berbeda', 'Jumlah Penilaian']));
@@ -587,12 +596,13 @@
 
     judul('RINCIAN SEMUA PENILAIAN');
     out.push(barisCsv(['Tanggal', 'Jam', 'Pos', 'guideId', 'Nama Guide', 'Uniform', 'ID-Card',
-                       'Review', 'Catatan', 'Status', 'Waktu (UTC, sama dgn spreadsheet)', 'evaluationId']));
+                       'Review', 'Etika', 'Catatan', 'Status', 'Waktu (UTC, sama dgn spreadsheet)', 'evaluationId']));
     baik.forEach(e => out.push(barisCsv([
       DB.tanggalLokal(e.timestamp), jamLokal(e.timestamp), e.pos, e.guideId, e.guideName,
       e.criteria?.uniform ? 1 : 0,
       e.criteria?.idCard ? 1 : 0,
       Number(e.criteria?.review) || 0,
+      Number(e.criteria?.etika) || 0,
       e.catatan || '', e.synced ? 'Terkirim' : 'Menunggu',
       e.timestamp, e.evaluationId,
     ])));
@@ -737,7 +747,7 @@
     $('#catatan').addEventListener('input', e => { form.catatan = e.target.value; saveDraft(); });
 
     $$('.criterion').forEach(c => {
-      if (c.dataset.crit !== 'review') c.classList.add('unset');
+      if (!KRIT_ANGKA[c.dataset.crit]) c.classList.add('unset');
 
       c.querySelectorAll('.seg').forEach(btn => btn.addEventListener('click', () => {
         form.crit[c.dataset.crit] = Number(btn.dataset.val) === 1;
@@ -747,8 +757,9 @@
 
       // Penghitung Review
       c.querySelectorAll('.stepbtn').forEach(btn => btn.addEventListener('click', () => {
-        const n = Math.max(0, Number(form.crit.review) || 0) + Number(btn.dataset.step);
-        form.crit.review = Math.min(REVIEW_MAKS, Math.max(0, n));
+        const kk = c.dataset.crit;
+        const n = Math.max(0, Number(form.crit[kk]) || 0) + Number(btn.dataset.step);
+        form.crit[kk] = Math.min(REVIEW_MAKS, Math.max(0, n));
         applyCritUI(); saveDraft(); haptic(15);
         $('#draftNote').hidden = false;
       }));

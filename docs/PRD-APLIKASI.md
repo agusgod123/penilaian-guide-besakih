@@ -42,7 +42,7 @@ Versi 2.0 · Bahasa: Indonesia · Status: acuan pembangunan ulang dari nol
 
 Aplikasi web (PWA) **offline-first** untuk mencatat kepatuhan guide di tiga pos
 pemeriksaan Kawasan Besakih. Staff lapangan menilai tiga kriteria —
-**Uniform**, **ID-Card**, dan **Review** — memakai HP atau tablet, tanpa login,
+**Uniform**, **ID-Card**, **Review**, dan **Etika** — memakai HP atau tablet, tanpa login,
 dan tanpa bergantung pada sinyal. Data terkirim sendiri ke Google Spreadsheet
 begitu ada jaringan, lalu dirangkum otomatis ke tab rekap bulanan berformat
 sama dengan berkas *NILAI REWARD* yang dipakai tim selama ini.
@@ -151,6 +151,7 @@ Prioritas: **W** = wajib, **S** = sebaiknya, **B** = boleh menyusul.
 | F-4.2.3 | **Uniform** dinilai `Ya`/`Tidak` dan disimpan sebagai `1`/`0` | W |
 | F-4.2.4 | **ID-Card** dinilai `Ya`/`Tidak` dan disimpan sebagai `1`/`0` | W |
 | F-4.2.5 | **Review** diisi bilangan bulat `0`–`20` lewat tombol − dan +; nilai `0` adalah jawaban sah, bukan "belum diisi" | W |
+| F-4.2.5a | **Etika** diisi dengan cara yang sama: bilangan bulat `0`–`20`, `0` adalah jawaban sah | W |
 | F-4.2.6 | Tersedia isian **catatan** bebas, maksimal 500 huruf, boleh kosong | W |
 | F-4.2.7 | Penyimpanan ditolak bila Uniform atau ID-Card belum dipilih | W |
 | F-4.2.8 | **Penyimpanan ditolak bila nama guide masih ambigu.** Bila ketikan cocok untuk lebih dari satu guide, aplikasi menolak dan menawarkan daftar nama yang mungkin dimaksud — **aplikasi tidak boleh menebak** | W |
@@ -312,6 +313,7 @@ Bentuk yang dikirim aplikasi ke server dan disimpan di perangkat:
 | `criteria.uniform` | Boolean | Ditolak |
 | `criteria.idCard` | Boolean | Ditolak |
 | `criteria.review` | Angka ≥ 0 | Ditolak bila negatif; dipangkas bila > 20 |
+| `criteria.etika` | Angka ≥ 0, **boleh tidak dikirim** | Dianggap 0 bila tidak ada; ditolak bila negatif; dipangkas bila > 20 |
 | `catatan` | Teks | Dipangkas ke 500 huruf |
 
 > **Alasan menimpa `guideName`:** perangkat yang masih memakai daftar guide lama
@@ -480,6 +482,7 @@ pada satu tanggal:
 | UNI FORM | **Paling buruk** (`0` mengalahkan `1`) | Ketidaksesuaian di pos mana pun tetap ketidaksesuaian |
 | ID | **Paling buruk** | Sama |
 | REVIEW | **Tertinggi** | Review yang tercatat di salah satu pos tidak boleh hilang |
+| ETIKA | **Tertinggi** | Alasan yang sama dengan Review |
 
 Rincian per pos tetap tersedia di tab `Rekap per Pos`.
 

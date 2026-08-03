@@ -27,6 +27,10 @@ class FakeSheet {
     this.merges = []; this.frozenCols = 0;
   }
   getLastRow() { return this.data.length; }
+  getLastColumn() {
+    return this.data.reduce((n, b) => Math.max(n, (b || []).length), 0);
+  }
+  clearContents() { this.data = []; return this; }
   getMaxRows() { return Math.max(this.data.length, 1000); }
   getMaxColumns() { return 26; }
   getDataRange() { return this.getRange(1, 1, Math.max(this.data.length, 1), 20); }
@@ -223,7 +227,7 @@ let r = post(contoh('uuid-1'));
 cek('POST menyimpan penilaian', r.accepted.length === 1 && r.accepted[0].synced === true);
 cek('Baris tersimpan di tab Evaluations', doc.getSheetByName('Evaluations').getLastRow() === 2);
 
-const baris = doc.getSheetByName('Evaluations').getRange(2, 1, 1, 10).getValues()[0];
+const baris = doc.getSheetByName('Evaluations').getRange(2, 1, 1, 11).getValues()[0];
 cek('Urutan kolom sesuai header (uniform, idCard, review)',
   baris[0] === 'uuid-1' && Number(baris[2]) === 1 && baris[3] === 'G-001' &&
   baris[5] === 0 && baris[6] === 1 && baris[7] === 2,
@@ -269,18 +273,18 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
   ev.data = [ev.data[0]];                       // sisakan header saja
 
   const T = (hari, jam) => `2026-07-${String(hari).padStart(2, '0')}T${jam}:00:00.000Z`;
-  const buat = (id, gid, nama, pos, hari, uniform, idCard, review) =>
-    ev.data.push([id, T(hari, '02'), pos, gid, nama, uniform, idCard, review, '', T(hari, '02')]);
+  const buat = (id, gid, nama, pos, hari, uniform, idCard, review, etika) =>
+    ev.data.push([id, T(hari, '02'), pos, gid, nama, uniform, idCard, review, etika || 0, '', T(hari, '02')]);
 
   // G-001 (Asing A1) tanggal 3: pos 1 bagus, pos 3 buruk -> harus terambil yang buruk
-  buat('e1', 'G-001', 'Gusti Alit Astawa', 1, 3, 1, 1, 1);
-  buat('e2', 'G-001', 'Gusti Alit Astawa', 3, 3, 0, 0, 3);
+  buat('e1', 'G-001', 'Gusti Alit Astawa', 1, 3, 1, 1, 1, 2);
+  buat('e2', 'G-001', 'Gusti Alit Astawa', 3, 3, 0, 0, 3, 5);
   // G-001 tanggal 5: sekali saja
   buat('e3', 'G-001', 'Gusti Alit Astawa', 2, 5, 1, 1, 0);
   // G-005 (Domestik D2) tanggal 4
   buat('e4', 'G-005', 'I Gede Darta', 1, 4, 0, 1, 2);
   // bulan lain — tidak boleh ikut
-  ev.data.push(['e9', '2026-06-10T02:00:00.000Z', 1, 'G-001', 'Gusti Alit Astawa', 1, 1, 9, '', '']);
+  ev.data.push(['e9', '2026-06-10T02:00:00.000Z', 1, 'G-001', 'Gusti Alit Astawa', 1, 1, 9, 0, '', '']);
 
   const pesan = sandbox.bangunRekap('2026-07');
   cek('bangunRekap() menghasilkan 4 tab regu + 1 tab per pos',
@@ -302,11 +306,27 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     barisG1[3] === 3, `review=${barisG1[3]}`);
 
   cek('Tanggal tanpa penilaian dibiarkan kosong',
-    barisG1[4] === 1 && barisG1[5] === 1 && barisG1[6] === 0,
+    barisG1[5] === 1 && barisG1[6] === 1 && barisG1[7] === 0,
     'tanggal 5: uniform=1 id=1 review=0');
 
-  const kolTotal = 1 + 2 * 3 + 1;               // 2 tanggal -> TOTAL mulai kolom 8
-  const rumus = a1.getRange(5, kolTotal, 1, 3).getValues()[0];
+  /* ---- Etika: angka bebas, digabung seperti Review ---- */
+  {
+    const head3b = a1.getRange(3, 1, 1, 13).getValues()[0];
+    cek('Tiap tanggal kini punya 4 kolom, ETIKA di urutan keempat',
+      head3b[1] === 'UNI FORM' && head3b[2] === 'ID' &&
+      head3b[3] === 'REVIEW' && head3b[4] === 'ETIKA',
+      head3b.slice(1, 5).join(' | '));
+
+    // e1 (pos 1) etika 2, e2 (pos 3) etika 5 pada tanggal yang sama -> ambil 5
+    const bEtika = a1.getRange(5, 1, 1, 9).getValues()[0];
+    cek('Etika antar pos diambil yang TERTINGGI, seperti Review',
+      bEtika[4] === 5, `tanggal 3: pos 1 etika 2, pos 3 etika 5 -> ${bEtika[4]}`);
+    cek('Etika ikut kosong bila hari itu tidak diperiksa',
+      a1.getRange(6, 5, 1, 1).getValues()[0][0] === '');
+  }
+
+  const kolTotal = 1 + 2 * 4 + 1;               // 2 tanggal x 4 kolom -> TOTAL mulai kolom 10
+  const rumus = a1.getRange(5, kolTotal, 1, 4).getValues()[0];
   cek('Kolom TOTAL berisi rumus SUM yang tetap hidup',
     String(rumus[0]).indexOf('=SUM(') === 0 && String(rumus[0]).indexOf('B5') > -1,
     String(rumus[0]));
@@ -329,16 +349,16 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     bentrok.length === 0, bentrok.length ? bentrok.map(s => s.nama).join(', ') : 'aman');
 
   const perPos = doc.getSheetByName('Rekap per Pos 2026-07');
-  const headPos = perPos.getRange(2, 1, 1, 15).getValues()[0];
+  const headPos = perPos.getRange(2, 1, 1, 18).getValues()[0];
   cek('Tab per pos memisahkan Pos 1, 2, dan 3',
-    headPos[2] === 'P1 Hadir' && headPos[6] === 'P2 Hadir' && headPos[10] === 'P3 Hadir',
+    headPos[2] === 'P1 Hadir' && headPos[7] === 'P2 Hadir' && headPos[12] === 'P3 Hadir',
     headPos.slice(2, 4).join(' | '));
 
-  const barisPos = perPos.getRange(3, 1, 2, 15).getValues();
+  const barisPos = perPos.getRange(3, 1, 2, 18).getValues();
   const g1pos = barisPos.find(b => b[0] === 'Gusti Alit Astawa');
   cek('Rincian per pos mencatat jumlah penilaian tiap pos',
-    g1pos && g1pos[2] === 1 && g1pos[6] === 1 && g1pos[10] === 1 && g1pos[14] === 3,
-    g1pos ? `P1=${g1pos[2]} P2=${g1pos[6]} P3=${g1pos[10]} total=${g1pos[14]}` : 'tidak ketemu');
+    g1pos && g1pos[2] === 1 && g1pos[7] === 1 && g1pos[12] === 1 && g1pos[17] === 3,
+    g1pos ? `P1=${g1pos[2]} P2=${g1pos[7]} P3=${g1pos[12]} total=${g1pos[17]}` : 'tidak ketemu');
 
   // Jalankan dua kali — tidak boleh menggandakan tab atau baris
   const jmlTabSebelum = doc.getSheets().length;
@@ -348,7 +368,7 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     doc.getSheetByName('Rekap A1 2026-07').getRange(5, 1, 1, 1).getValues()[0][0] === 'Gusti Alit Astawa');
 
   // Cap waktu di ujung kanan baris judul — pembeda rekap segar vs rekap basi
-  const jmlKolomA1 = 1 + (2 + 1) * 3;
+  const jmlKolomA1 = 1 + (2 + 1) * 4;
   cek('Rekap membawa cap waktu "Diperbarui:"',
     String(a1.getRange(1, jmlKolomA1, 1, 1).getValues()[0][0]).indexOf('Diperbarui:') === 0,
     String(a1.getRange(1, jmlKolomA1, 1, 1).getValues()[0][0]));
@@ -364,9 +384,9 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
   {
     const simpan = ev.data.slice();
     ev.data = [ev.data[0]];
-    const B = (id, gid, pos, hari, jam, u, i, rv) =>
+    const B = (id, gid, pos, hari, jam, u, i, rv, et) =>
       ev.data.push([id, `2026-07-${String(hari).padStart(2, '0')}T${jam}:00:00.000Z`,
-                    pos, gid, '?', u, i, rv, '', '']);
+                    pos, gid, '?', u, i, rv, et || 0, '', '']);
 
     // G-001 tanggal 3: DUA KALI di pos 1 (harus tetap dihitung 1) + sekali di pos 2
     B('k1', 'G-001', 1, 3, '02', 1, 1, 1);
@@ -445,10 +465,10 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
 
     // Rincian per pos ikut memakai aturan yang sama
     const pp = doc.getSheetByName('Rekap per Pos 2026-07');
-    const headPP = pp.getRange(2, 1, 1, 15).getValues()[0];
+    const headPP = pp.getRange(2, 1, 1, 18).getValues()[0];
     cek('Tab per pos memakai istilah Hadir, bukan Dinilai',
-      headPP[2] === 'P1 Hadir' && headPP[14] === 'Total Kehadiran', headPP[2] + ' | ' + headPP[14]);
-    const barisPP = pp.getRange(3, 1, 3, 15).getValues()
+      headPP[2] === 'P1 Hadir' && headPP[17] === 'Total Kehadiran', headPP[2] + ' | ' + headPP[17]);
+    const barisPP = pp.getRange(3, 1, 3, 18).getValues()
       .find(b => b[0] === 'Gusti Alit Astawa');
     cek('P1 Hadir menghitung HARI, bukan jumlah penilaian',
       barisPP && barisPP[2] === 2,
@@ -457,8 +477,8 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
       barisPP && barisPP[3] === 1 && barisPP[4] === 2,
       barisPP ? `P1 Uniform=${barisPP[3]} (tgl 3 -> 0, tgl 4 -> 1) ID=${barisPP[4]}` : '-');
     cek('Total kehadiran sebulan benar',
-      barisPP && barisPP[14] === 5,
-      barisPP ? `${barisPP[14]} (tgl 3: 2 pos, tgl 4: 3 pos)` : '-');
+      barisPP && barisPP[17] === 5,
+      barisPP ? `${barisPP[17]} (tgl 3: 2 pos, tgl 4: 3 pos)` : '-');
 
     ev.data = simpan;
   }
@@ -466,7 +486,7 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
   // Pemeriksaan mandiri: penilaian ada tapi guideId-nya tak dikenal
   {
     const simpan = ev.data.slice();
-    ev.data = [ev.data[0], ['x1', '2026-07-03T02:00:00.000Z', 1, 'G-TIDAK-ADA', '?', 1, 1, 1, '', '']];
+    ev.data = [ev.data[0], ['x1', '2026-07-03T02:00:00.000Z', 1, 'G-TIDAK-ADA', '?', 1, 1, 1, 0, '', '']];
     const pesanAneh = sandbox.bangunRekap('2026-07');
     cek('bangunRekap() memperingatkan bila tidak ada nilai yang masuk rekap',
       pesanAneh.indexOf('TIDAK ADA YANG MASUK REKAP') > -1, pesanAneh.slice(-90));
@@ -483,7 +503,7 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
 
   // 2026-07-03T17:30Z = 4 Juli 01.30 WITA. Rekap harus memakai tanggal setempat,
   // bukan tanggal UTC — kalau tidak, penilaian sore hari lompat ke hari lain.
-  ev.data.push(['tz1', '2026-07-03T17:30:00.000Z', 1, 'G-001', 'Gusti Alit Astawa', 1, 1, 2, '', '']);
+  ev.data.push(['tz1', '2026-07-03T17:30:00.000Z', 1, 'G-001', 'Gusti Alit Astawa', 1, 1, 2, 0, '', '']);
   sandbox.bangunRekap('2026-07');
   const tzA1 = doc.getSheetByName('Rekap A1 2026-07');
   cek('Tanggal rekap memakai zona waktu spreadsheet, bukan UTC',
@@ -546,7 +566,7 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     timestamp: '2026-09-11T02:00:00.000Z',
     criteria: { idCard: true, uniform: true, review: 1 },
   }) } }));
-  const barisNama = ev.getRange(ev.getLastRow(), 1, 1, 10).getValues()[0];
+  const barisNama = ev.getRange(ev.getLastRow(), 1, 1, 11).getValues()[0];
   cek('guideName ditulis ulang memakai nama resmi dari tab Guides',
     barisNama[4] === 'I Gede Astawa', `tersimpan sebagai "${barisNama[4]}"`);
 
@@ -556,10 +576,10 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     timestamp: '2026-09-12T02:00:00.000Z',
     criteria: { idCard: true, uniform: true, review: 9999 }, catatan: 'x'.repeat(2000),
   }) } }));
-  const barisBatas = ev.getRange(ev.getLastRow(), 1, 1, 10).getValues()[0];
+  const barisBatas = ev.getRange(ev.getLastRow(), 1, 1, 11).getValues()[0];
   cek('review & catatan dipangkas ke batas wajar',
-    batas.accepted.length === 1 && barisBatas[7] === 20 && barisBatas[8].length === 500,
-    `review=${barisBatas[7]} panjang catatan=${barisBatas[8].length}`);
+    batas.accepted.length === 1 && barisBatas[7] === 20 && barisBatas[9].length === 500,
+    `review=${barisBatas[7]} panjang catatan=${barisBatas[9].length}`);
 
   /* ---- Satu pos hanya menilai satu kali per hari ---- */
   {
@@ -646,7 +666,7 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
   cek('Trigger tidak menumpuk bila dipasang dua kali', triggers.length === 2, `${triggers.length} trigger`);
 
   const ev = doc.getSheetByName('Evaluations');
-  ev.data = [ev.data[0], ['s1', '2026-09-01T02:00:00.000Z', 1, 'G-XXX', '?', 1, 1, 1, '', '']];
+  ev.data = [ev.data[0], ['s1', '2026-09-01T02:00:00.000Z', 1, 'G-XXX', '?', 1, 1, 1, 0, '', '']];
   const laporan = sandbox.periksaKesehatan();
   cek('periksaKesehatan() menunjuk guideId yang tercecer',
     laporan.indexOf('G-XXX') > -1 && laporan.indexOf('Total penilaian tersimpan : 1') > -1,
@@ -662,13 +682,15 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     ['lama-1', '2026-06-01T02:00:00.000Z', 1, 'G-001', 'Gusti Alit Astawa', true, false, true, 'catatan lama', ''],
   ];
   setup();
-  const h = ev.getRange(1, 1, 1, 10).getValues()[0];
-  const b = ev.getRange(2, 1, 1, 10).getValues()[0];
+  const h = ev.getRange(1, 1, 1, 11).getValues()[0];
+  const b = ev.getRange(2, 1, 1, 11).getValues()[0];
   cek('Tab Evaluations skema lama dimigrasikan',
-    h[5] === 'uniform' && h[6] === 'idCard' && h[7] === 'review', h.slice(5, 8).join(' | '));
+    h[5] === 'uniform' && h[6] === 'idCard' && h[7] === 'review' && h[8] === 'etika',
+    h.slice(5, 9).join(' | '));
+  // Kolom `etika` yang dulu dipindahkan ke `review` kini punya rumahnya sendiri
   cek('Nilai lama dipindahkan dengan benar (bukan dihapus)',
-    b[5] === 0 && b[6] === 1 && b[7] === 1 && b[8] === 'catatan lama',
-    `uniform=${b[5]} idCard=${b[6]} review=${b[7]}`);
+    b[5] === 0 && b[6] === 1 && b[8] === 1 && b[9] === 'catatan lama',
+    `uniform=${b[5]} idCard=${b[6]} review=${b[7]} etika=${b[8]}`);
   ev.data = [ev.data[0]];
 }
 

@@ -35,13 +35,14 @@ Kalau ada satu langkah yang membingungkan, langsung lompat ke
 ## 1. Apa itu aplikasi ini
 
 Aplikasi untuk mencatat penilaian guide di **tiga pos pemeriksaan** Kawasan
-Besakih. Yang dinilai ada **tiga hal**:
+Besakih. Yang dinilai ada **empat hal**:
 
 | Kriteria | Cara mengisi | Artinya |
 | --- | --- | --- |
 | 👔 **Uniform** | Tekan **Ya** atau **Tidak** | Seragamnya lengkap dan sesuai? |
 | 🪪 **ID-Card** | Tekan **Ya** atau **Tidak** | Kartu identitas guide dipakai? |
 | ⭐ **Review** | Tekan **−** atau **+** | Jumlah review, angka 0 sampai 20 |
+| 🤝 **Etika** | Tekan **−** atau **+** | Nilai etika, angka 0 sampai 20 |
 
 Tiga hal penting:
 
@@ -199,9 +200,10 @@ Tekan saja salah satu nama yang ditawarkan, atau ketik nama lebih lengkap.
 | 🪪 **ID-Card** | **Wajib.** Tekan **Ya** atau **Tidak** |
 | 👔 **Uniform** | **Wajib.** Tekan **Ya** atau **Tidak** |
 | ⭐ **Review** | Tekan **+** sebanyak jumlah review. Kalau tidak ada review, **biarkan 0** |
+| 🤝 **Etika** | Tekan **+** sesuai nilai etika. Kalau tidak ada catatan etika, **biarkan 0** |
 
-> **0 pada Review itu sah** dan bukan berarti belum diisi. Yang wajib ditekan
-> hanya ID-Card dan Uniform.
+> **0 pada Review dan Etika itu sah** dan bukan berarti belum diisi. Yang wajib
+> ditekan hanya ID-Card dan Uniform.
 
 ### Langkah 6 — Catatan (boleh dilewati)
 
@@ -347,18 +349,18 @@ Bentuknya sama persis dengan berkas **NILAI REWARD** yang selama ini dipakai:
 ```
 REKAP PENILAIAN GUIDE — ASING REGU 1 — 2026-08        Diperbarui: 2 Agu 2026 20.15
 REGU: 1 (Asing)   │  TGL: 2-8-2026     │  TGL: 3-8-2026     │      TOTAL
-NAME              │ UNI FORM  ID  REVIEW│ UNI FORM  ID  REVIEW│ UNI FORM  ID  REVIEW
+NAME              │ UNI FORM ID REVIEW ETIKA│ UNI FORM ID REVIEW ETIKA│ UNI FORM ID REVIEW ETIKA
 
-Gusti Alit Astawa │    1      1     5   │    1      1     2   │    2      2     7
-I Gede Astawa     │    1      0     0   │                     │    1      0     0
-I Gede Budiarsana │                     │    0      1     1   │    0      1     1
+Gusti Alit Astawa │    1     1    5     3   │    1     1    2     0   │    2     2    7     3
+I Gede Astawa     │    1     0    0     0   │                         │    1     0    0     0
+I Gede Budiarsana │                         │    0     1    1     2   │    0     1    1     2
 ```
 
 Cara membacanya:
 
 - **Satu baris = satu guide.** Semua anggota regu tercantum, termasuk yang
   belum pernah dinilai — jadi terlihat siapa yang belum diperiksa.
-- **Tiap tanggal punya 3 kolom**: UNI FORM, ID, REVIEW
+- **Tiap tanggal punya 4 kolom**: UNI FORM, ID, REVIEW, ETIKA
 - **`1`** = sesuai · **`0`** = tidak sesuai · **kosong** = tidak bertugas atau
   belum diperiksa hari itu
 - **Blok TOTAL** di paling kanan menjumlahkan seluruh tanggal secara otomatis
@@ -368,7 +370,7 @@ Cara membacanya:
 | Kriteria | Yang dipakai |
 | --- | --- |
 | UNI FORM & ID | **Yang paling buruk.** Kalau di Pos 1 lengkap (1) tapi di Pos 3 tidak (0), yang tercatat **0** |
-| REVIEW | **Yang tertinggi**, supaya review yang tercatat di salah satu pos tidak hilang |
+| REVIEW & ETIKA | **Yang tertinggi**, supaya nilai yang tercatat di salah satu pos tidak hilang |
 
 Rincian tiap pos tetap bisa dilihat di tab **`Rekap per Pos`**.
 
