@@ -322,6 +322,10 @@ check('Rincian membawa waktu UTC & evaluationId untuk cross-check ke spreadsheet
   /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(csv));
 check('Angka tidak dikutip agar langsung bisa dijumlah di Excel',
   !/;"[01]"/.test(csv));
+check('Rekap CSV membawa kolom KEHADIRAN', csv.includes('KEHADIRAN'));
+check('Rekap per pos memakai satuan guide-hari, bukan jumlah penilaian',
+  csv.includes('Hadir (guide-hari)'));
+
 
 // Nilai entri yang tidak terbaca tidak boleh ikut dihitung sebagai 0
 {
@@ -569,6 +573,65 @@ check('Pengiriman ulang tidak menggandakan data di server (append-only)', before
     });
   check('Elemen [hidden] benar-benar tersembunyi (drawer, tutorial, view)',
     hasRule && displayed.length === 0, displayed.join(', ') || 'aturan CSS ada');
+}
+
+/* ---------- Kehadiran: satu pos bernilai satu ----------
+   Sengaja diletakkan paling akhir: blok ini menambah satu penilaian, dan
+   pemeriksaan lain di atas bergantung pada jumlah data yang tetap. */
+{
+  // Nama yang belum dipakai pemeriksaan lain, supaya hasilnya tidak bergantung
+  // pada sisa data dari bagian sebelumnya.
+  const NAMA = 'I Nengah Tapak';
+  const POS = 3;
+  const simpanPenilaian = async () => {
+    click($('#btnNewEval')); await sleep(50);
+    setVal($('#posSelect'), String(POS));
+    $('#posSelect').dispatchEvent(new window.Event('change', { bubbles: true }));
+    setVal($('#guideInput'), NAMA);
+    click($('[data-crit=idCard] .seg.yes'));
+    click($('[data-crit=uniform] .seg.yes'));
+    $('#formEval').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    await sleep(400);
+  };
+
+  const awal = (await window.DB.counts()).total;
+  await simpanPenilaian();
+  const sesudahSatu = (await window.DB.counts()).total;
+  check('Penilaian pertama tersimpan', sesudahSatu === awal + 1, `${awal} -> ${sesudahSatu}`);
+
+  const gid = (await window.DB.all()).find(e => e.guideName === NAMA).guideId;
+  const kembar = await window.DB.penilaianKembar(gid, POS, new Date().toISOString());
+  check('penilaianKembar() menemukan penilaian di pos & hari yang sama',
+    !!kembar && kembar.guideName === NAMA, kembar ? `Pos ${kembar.pos}` : 'tidak ketemu');
+  check('Pos berbeda tidak dianggap kembar',
+    (await window.DB.penilaianKembar(gid, 1, new Date().toISOString())) === null);
+  check('Hari berbeda tidak dianggap kembar',
+    (await window.DB.penilaianKembar(gid, POS, '2020-01-01T02:00:00.000Z')) === null);
+
+  // Penilaian kedua di pos yang sama tetap boleh disimpan sebagai koreksi
+  // (window.confirm sudah di-stub menjadi "ya" di bagian penyiapan).
+  await simpanPenilaian();
+  check('Penilaian ulang tetap boleh disimpan sebagai koreksi',
+    (await window.DB.counts()).total === sesudahSatu + 1,
+    `${sesudahSatu} -> ${(await window.DB.counts()).total}`);
+
+  // ...tetapi kehadirannya tetap dihitung satu
+  blobTerakhir.isi = '';
+  click($('[data-nav=riwayat]')); await sleep(200);
+  click($('#btnExportCsv')); await sleep(400);
+  const csvKembar = blobTerakhir.isi;
+  const batas = csvKembar.indexOf('RINCIAN SEMUA PENILAIAN');
+  const barisRekap = csvKembar.slice(0, batas).split('\r\n')
+    .filter(b => b.includes(NAMA) && /^\d{4}-\d{2}-\d{2};/.test(b));
+  const barisRinci = csvKembar.slice(batas).split('\r\n')
+    .filter(b => b.includes(NAMA) && /^\d{4}-\d{2}-\d{2};/.test(b));
+  const kolom = (barisRekap[0] || '').split(';');
+  check('Dua penilaian di pos yang sama tetap KEHADIRAN 1',
+    barisRekap.length === 1 && barisRinci.length === 2 &&
+    kolom[7] === '1' && kolom[9] === '2',
+    barisRekap[0]
+      ? `${barisRinci.length} baris rincian -> kehadiran ${kolom[7]}, jumlah penilaian ${kolom[9]}`
+      : 'baris rekap tidak ketemu');
 }
 
 /* ---------- Error JS ---------- */

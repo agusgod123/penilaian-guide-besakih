@@ -352,7 +352,9 @@ flowchart TD
     E -->|Ya| F["Baca tab Guides → daftar anggota tiap regu"]
     F --> G["Baca tab Evaluations → saring bulan itu saja"]
 
-    G --> H["Gabungkan per guide per tanggal"]
+    G --> GA["Gabungkan dulu per<br/>guide + POS + tanggal<br/><b>satu pos bernilai satu</b>"]
+    GA --> H["Gabungkan lagi lintas pos,<br/>per guide per tanggal"]
+    GA --> GB["Kehadiran harian =<br/>jumlah pos berbeda, 0..3"]
     H --> H1["UNI FORM: ambil yang PALING BURUK"]
     H --> H2["ID: ambil yang PALING BURUK"]
     H --> H3["REVIEW: ambil yang TERTINGGI"]
@@ -360,6 +362,8 @@ flowchart TD
     H1 --> I["Susun 4 tab regu:<br/>Rekap A1, A2, D1, D2"]
     H2 --> I
     H3 --> I
+    GB --> IK["Susun tab Rekap Kehadiran:<br/>kolom = tanggal, isi = 0..3"]
+    IK --> M
     I --> J["Lepas sel gabungan sisa susunan kemarin"]
     J --> K["Tulis judul, tanggal, nama,<br/>nilai harian, dan rumus TOTAL"]
     K --> L["Bubuhkan cap 'Diperbarui: ...'<br/>di pojok kanan atas"]
@@ -370,6 +374,8 @@ flowchart TD
     N -->|Tidak| P(["Selesai"])
     O --> P
 
+    style GA fill:#E7F3EC
+    style GB fill:#E7F3EC
     style H1 fill:#FFF6E0
     style H2 fill:#FFF6E0
     style H3 fill:#FFF6E0
@@ -381,6 +387,12 @@ yang sama. Kalau di Pos 1 seragamnya lengkap tapi di Pos 3 tidak, yang dicatat
 adalah yang tidak lengkap — inilah cara penilaian yang dipakai tim selama ini.
 Sebaliknya REVIEW diambil yang tertinggi supaya review yang tercatat di salah
 satu pos tidak terhapus.
+
+**Kenapa digabung dua tingkat?** Penggabungan pertama — per guide **per pos**
+per tanggal — memastikan pemeriksaan berulang di pos yang sama tidak dihitung
+dua kali. Dari situ lahir angka kehadiran (0–3) sekaligus kolom `Pn Hadir` yang
+menghitung **hari**, bukan jumlah penilaian. Penggabungan kedua, lintas pos,
+baru menghasilkan nilai harian untuk tab regu.
 
 ---
 

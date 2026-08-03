@@ -307,8 +307,27 @@
 
   function showPicked(g) {
     const el = $('#guidePicked');
-    el.textContent = `✓ ${g.guideName} · ${g.guideId} · ${labelRegu(g.regu)}`;
+    el.dataset.guideId = g.guideId;
+    el.innerHTML = `✓ ${esc(g.guideName)} · ${esc(g.guideId)} · ${esc(labelRegu(g.regu))}`;
     el.classList.remove('hidden');
+    tandaiKembar(g);
+  }
+
+  /**
+   * Beri tahu sedini mungkin bila guide ini sudah dinilai di pos yang sama
+   * hari ini — supaya staff tidak terlanjur mengisi formulir untuk kehadiran
+   * yang toh tetap dihitung satu.
+   */
+  async function tandaiKembar(g) {
+    const el = $('#guidePicked');
+    const pos = Number($('#posSelect').value);
+    let kembar = null;
+    try { kembar = await DB.penilaianKembar(g.guideId, pos, new Date().toISOString()); }
+    catch { return; }
+    // Guide sudah diganti selagi menunggu — jangan timpa keterangannya
+    if (!kembar || el.dataset.guideId !== g.guideId) return;
+    el.innerHTML += `<br><small>⚠️ Sudah dinilai di Pos ${pos} hari ini — ` +
+                    `kehadiran tetap dihitung 1</small>`;
   }
 
   /** Tawarkan nama-nama yang mungkin dimaksud saat ketikan masih ambigu. */
@@ -338,11 +357,29 @@
     const missing = ['idCard', 'uniform'].filter(k => form.crit[k] === null);
     if (missing.length) { toast('Pilih Ya/Tidak untuk ID-Card dan Uniform', 'warn', '⚠️'); return; }
 
+    const pos = Number($('#posSelect').value);
+
+    // Satu pos hanya bernilai satu kehadiran per hari. Penilaian kedua di pos
+    // yang sama tidak menambah apa pun di rekap — tapi tetap diizinkan, karena
+    // kadang memang dimaksudkan sebagai koreksi dari yang pertama.
+    const kembar = await DB.penilaianKembar(g.guideId, pos, new Date().toISOString());
+    if (kembar) {
+      const c = kembar.criteria || {};
+      const lanjut = confirm(
+        `${g.guideName} sudah dinilai di Pos ${pos} hari ini ` +
+        `(pukul ${fmtTime(kembar.timestamp).split(' ').pop()}, ` +
+        `Uniform ${c.uniform ? 'Ya' : 'Tidak'}, ID ${c.idCard ? 'Ya' : 'Tidak'}, ` +
+        `Review ${Number(c.review) || 0}).\n\n` +
+        `Kehadirannya tetap dihitung 1, bukan 2.\n\n` +
+        `Lanjutkan menyimpan sebagai koreksi?`);
+      if (!lanjut) { toast('Penilaian dibatalkan', 'warn', '↩️'); return; }
+    }
+
     const evaluation = {
       evaluationId: uuid(),
       guideId: g.guideId,
       guideName: g.guideName,
-      pos: Number($('#posSelect').value),
+      pos,
       timestamp: new Date().toISOString(),
       criteria: {
         idCard: !!form.crit.idCard,
@@ -442,7 +479,7 @@
    * kalau berbeda, berarti memang ada yang tidak sampai ke server.
    */
   function rangkumPerangkat(list) {
-    const harian = new Map(), perPos = new Map(), perTgl = new Map();
+    const harian = new Map(), perPosHari = new Map(), perTgl = new Map();
 
     for (const e of list) {
       const c = e.criteria || {};
@@ -465,13 +502,31 @@
         h.jml++;
       }
 
-      const p = perPos.get(pos) || { pos, jml: 0, uniform: 0, idCard: 0, review: 0 };
-      p.jml++; p.uniform += u; p.idCard += i; p.review += r;
-      perPos.set(pos, p);
+      // Digabung dulu pada tingkat (guide, pos, tanggal) supaya penilaian ulang
+      // di pos yang sama tidak terhitung sebagai kehadiran kedua.
+      const kp = `${e.guideId}|${pos}|${tgl}`;
+      const ph = perPosHari.get(kp);
+      if (!ph) perPosHari.set(kp, { pos, uniform: u, idCard: i, review: r });
+      else {
+        ph.uniform = Math.min(ph.uniform, u);
+        ph.idCard = Math.min(ph.idCard, i);
+        ph.review = Math.max(ph.review, r);
+      }
 
-      const t = perTgl.get(tgl) || { tgl, jml: 0, guides: new Set() };
+      const t = perTgl.get(tgl) || { tgl, jml: 0, guides: new Set(), hadir: 0 };
       t.jml++; t.guides.add(e.guideId);
       perTgl.set(tgl, t);
+    }
+
+    const perPos = new Map();
+    for (const ph of perPosHari.values()) {
+      const p = perPos.get(ph.pos) || { pos: ph.pos, hadir: 0, uniform: 0, idCard: 0, review: 0 };
+      p.hadir++; p.uniform += ph.uniform; p.idCard += ph.idCard; p.review += ph.review;
+      perPos.set(ph.pos, p);
+    }
+    for (const h of harian.values()) {
+      const t = perTgl.get(h.tgl);
+      if (t) t.hadir += h.pos.size;
     }
 
     const urutTgl = (a, b) => String(a.tgl).localeCompare(String(b.tgl));
@@ -507,19 +562,23 @@
 
     judul('REKAP HARIAN PER GUIDE — cocokkan dengan tab Rekap A1/A2/D1/D2 di spreadsheet');
     out.push(barisCsv(['(Bila satu guide dinilai beberapa kali sehari: UNI FORM & ID diambil yang paling buruk, REVIEW yang tertinggi)']));
-    out.push(barisCsv(['Tanggal', 'Nama Guide', 'guideId', 'Regu', 'UNI FORM', 'ID', 'REVIEW', 'Dinilai di Pos', 'Jumlah Penilaian']));
+    out.push(barisCsv(['(KEHADIRAN = berapa pos yang memeriksa hari itu. Dinilai dua kali di pos yang sama tetap dihitung 1)']));
+    out.push(barisCsv(['Tanggal', 'Nama Guide', 'guideId', 'Regu', 'UNI FORM', 'ID', 'REVIEW',
+                       'KEHADIRAN', 'Dinilai di Pos', 'Jumlah Penilaian']));
     harian.forEach(h => out.push(barisCsv([
       h.tgl, h.guideName, h.guideId, reguGuide(h.guideId),
-      h.uniform, h.idCard, h.review, [...h.pos].sort().join(' & '), h.jml,
+      h.uniform, h.idCard, h.review,
+      h.pos.size, [...h.pos].sort().join(' & '), h.jml,
     ])));
 
     judul('REKAP PER POS PEMERIKSAAN');
-    out.push(barisCsv(['Pos', 'Jumlah Penilaian', 'Uniform Sesuai', 'ID Sesuai', 'Total Review']));
-    perPos.forEach(p => out.push(barisCsv([p.pos, p.jml, p.uniform, p.idCard, p.review])));
+    out.push(barisCsv(['(Hadir dihitung per guide per hari — bukan jumlah penilaian)']));
+    out.push(barisCsv(['Pos', 'Hadir (guide-hari)', 'Uniform Sesuai', 'ID Sesuai', 'Total Review']));
+    perPos.forEach(p => out.push(barisCsv([p.pos, p.hadir, p.uniform, p.idCard, p.review])));
 
     judul('REKAP PER TANGGAL');
-    out.push(barisCsv(['Tanggal', 'Jumlah Penilaian', 'Guide Berbeda']));
-    perTgl.forEach(t => out.push(barisCsv([t.tgl, t.jml, t.guides.size])));
+    out.push(barisCsv(['Tanggal', 'Total Kehadiran', 'Guide Berbeda', 'Jumlah Penilaian']));
+    perTgl.forEach(t => out.push(barisCsv([t.tgl, t.hadir, t.guides.size, t.jml])));
 
     judul('RINCIAN SEMUA PENILAIAN');
     out.push(barisCsv(['Tanggal', 'Jam', 'Pos', 'guideId', 'Nama Guide', 'Uniform', 'ID-Card',
@@ -652,7 +711,14 @@
 
     $('#btnNewEval').addEventListener('click', () => { form.pos = Number($('#homePos').value); $('#posSelect').value = form.pos; go('nilai'); });
     $('#homePos').addEventListener('change', e => { form.pos = Number(e.target.value); Sync.Settings.set({ pos: form.pos }); saveDraft(); });
-    $('#posSelect').addEventListener('change', e => { form.pos = Number(e.target.value); Sync.Settings.set({ pos: form.pos }); $('#homePos').value = e.target.value; saveDraft(); });
+    $('#posSelect').addEventListener('change', e => {
+      form.pos = Number(e.target.value);
+      Sync.Settings.set({ pos: form.pos });
+      $('#homePos').value = e.target.value;
+      // Peringatan penilaian ganda terikat pada pos, jadi diperiksa ulang
+      if (form.guide) showPicked(form.guide);
+      saveDraft();
+    });
 
     $('#guideInput').addEventListener('input', e => {
       const g = findGuide(e.target.value);

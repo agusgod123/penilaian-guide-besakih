@@ -442,6 +442,7 @@ Untuk tiap bulan dibuat lima tab:
 | `Rekap A2 YYYY-MM` | Asing regu 2 |
 | `Rekap D1 YYYY-MM` | Domestik regu 1 |
 | `Rekap D2 YYYY-MM` | Domestik regu 2 |
+| `Rekap Kehadiran YYYY-MM` | Kehadiran harian tiap guide (§11.3a) |
 | `Rekap per Pos YYYY-MM` | Rincian tiap guide dipisah per pos |
 
 Susunan tab regu, meniru berkas *NILAI REWARD*:
@@ -484,6 +485,24 @@ Rincian per pos tetap tersedia di tab `Rekap per Pos`.
 
 **Aturan ini wajib diterapkan sama persis di Export Rekap CSV (F-4.6.5)**,
 karena kegunaan utamanya adalah untuk disandingkan.
+
+### 11.3a Kehadiran harian — satu pos bernilai satu
+
+| ID | Kebutuhan | Prioritas |
+| --- | --- | --- |
+| F-11.3a.1 | **Kehadiran seorang guide pada satu hari = jumlah POS BERBEDA yang memeriksanya**, bernilai 0 sampai 3 | W |
+| F-11.3a.2 | Diperiksa lebih dari sekali di pos yang sama pada hari yang sama tetap dihitung **satu** | W |
+| F-11.3a.3 | Penggabungan nilai dilakukan pada tingkat `(guide, pos, tanggal)` lebih dulu, baru dijumlahkan lintas pos | W |
+| F-11.3a.4 | Kolom `Pn Hadir` pada tab per pos menghitung **jumlah hari** guide itu diperiksa di pos n, bukan jumlah penilaian | W |
+| F-11.3a.5 | Tab `Rekap Kehadiran` memuat seluruh guide aktif; yang belum pernah hadir tetap tercantum dengan sel kosong | W |
+| F-11.3a.6 | Tersedia kolom `TOTAL POS` (jumlah kehadiran pos sebulan) dan `HARI HADIR` (jumlah hari hadir), keduanya berupa rumus | S |
+| F-11.3a.7 | Aplikasi **memperingatkan** bila guide yang sama akan dinilai lagi di pos yang sama pada hari yang sama, tetapi tetap mengizinkan — penilaian kedua kadang koreksi | W |
+| F-11.3a.8 | Peringatan itu memakai riwayat perangkat sendiri; deteksi lintas perangkat tidak dimungkinkan karena §5 melarang endpoint pembacaan | S |
+
+> **Alasan F-11.3a.2:** kehadiran dipakai untuk menghitung reward. Tanpa aturan
+> ini, satu guide yang kebetulan diperiksa dua kali di pos yang sama akan
+> terhitung hadir dua kali, sedangkan rekannya yang lewat sekali di tiap pos
+> hanya terhitung tiga — angkanya jadi tidak sebanding.
 
 ### 11.4 Kapan rekap disusun
 
@@ -681,6 +700,9 @@ Nomor AC-1…AC-8 dipertahankan dari versi 1.
 | **AC-18** | Angka rekap CSV sama dengan rekap spreadsheet | Bandingkan satu tanggal |
 | **AC-19** | Entri tidak terbaca tidak digambar sebagai nilai `0` | Rusakkan satu catatan, lihat Riwayat |
 | **AC-20** | Guide dengan `aktif = FALSE` tidak muncul, datanya tetap utuh | Nonaktifkan satu guide |
+| **AC-21** | Dua penilaian di pos yang sama pada hari yang sama dihitung sebagai kehadiran **1** | Nilai satu guide dua kali di Pos 1, lihat tab Kehadiran |
+| **AC-22** | Tiga pos berbeda pada hari yang sama dihitung sebagai kehadiran **3** | Nilai satu guide di Pos 1, 2, dan 3 |
+| **AC-23** | Aplikasi memperingatkan penilaian ganda tetapi tetap mengizinkan | Nilai guide yang sama dua kali di pos yang sama |
 
 ---
 

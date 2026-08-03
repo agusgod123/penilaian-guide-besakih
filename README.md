@@ -22,6 +22,25 @@ AC-1…AC-8 dipertahankan agar rujukan di dalam kode tetap sahih).
 | [`docs/ALUR-APLIKASI.md`](docs/ALUR-APLIKASI.md) | Pengembang | 13 diagram alur: arsitektur, sinkronisasi, sisi server, penyusunan rekap, penyimpanan, service worker |
 | [`docs/RENCANA-BACKEND-GOOGLE-SHEETS.md`](docs/RENCANA-BACKEND-GOOGLE-SHEETS.md) | Pengembang | Rancangan backend spreadsheet beserta batasannya |
 
+### Versi PDF (untuk dicetak atau dibagikan)
+
+Ketiga dokumen pertama tersedia juga sebagai PDF di folder `docs/`, lengkap
+dengan sampul dan diagram yang sudah tergambar. Untuk membangun ulang setelah
+berkas Markdown-nya diubah:
+
+```bash
+npm run docs:pdf
+```
+
+Perintah itu mengubah Markdown menjadi HTML (diagram Mermaid ikut dirender),
+lalu mencetaknya lewat **Chrome headless** yang sudah terpasang di komputer.
+Kalau Chrome ada di lokasi tidak lazim, setel `CHROME_PATH`. Untuk membangun
+satu dokumen saja: `node docs/buat-pdf.mjs ALUR-APLIKASI.md`.
+
+> `marked` dan `mermaid` ada di `devDependencies` **hanya** untuk keperluan
+> pembuatan PDF ini. Aplikasi yang dipasang di perangkat staff tetap tanpa
+> dependensi apa pun.
+
 ---
 
 ## Menjalankan

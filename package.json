@@ -9,15 +9,25 @@
     "start": "node server/server.js",
     "test": "node test/app.test.mjs",
     "test:gas": "node server-gas/test-gas.mjs",
-    "test:browser": "node test/e2e.mjs"
+    "test:browser": "node test/e2e.mjs",
+    "docs:pdf": "node docs/buat-pdf.mjs"
   },
   "engines": {
     "node": ">=18"
   },
-  "keywords": ["pwa", "offline-first", "indexeddb", "besakih", "guide", "penilaian"],
+  "keywords": [
+    "pwa",
+    "offline-first",
+    "indexeddb",
+    "besakih",
+    "guide",
+    "penilaian"
+  ],
   "license": "MIT",
   "devDependencies": {
     "fake-indexeddb": "^6.0.0",
-    "jsdom": "^26.0.0"
+    "jsdom": "^26.0.0",
+    "marked": "^18.0.7",
+    "mermaid": "^11.16.0"
   }
 }

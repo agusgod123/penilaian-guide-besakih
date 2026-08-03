@@ -187,6 +187,25 @@
     },
 
     /**
+     * Cari penilaian atas guide yang sama, di pos yang sama, pada hari yang
+     * sama — dipakai untuk memperingatkan penilaian ganda. Satu pos hanya
+     * bernilai satu kehadiran, jadi penilaian kedua tidak menambah apa pun
+     * kecuali memang dimaksudkan sebagai koreksi.
+     *
+     * Hanya melihat riwayat perangkat ini. Itu memadai karena penilaian ganda
+     * di pos yang sama umumnya berasal dari perangkat yang sama juga; server
+     * sengaja tidak menyediakan cara membaca kembali daftar penilaian.
+     */
+    async penilaianKembar(guideId, pos, iso) {
+      const hari = DB.tanggalLokal(iso);
+      return (await DB.all()).find(e =>
+        !e.corrupt &&
+        e.guideId === guideId &&
+        Number(e.pos) === Number(pos) &&
+        DB.tanggalLokal(e.timestamp) === hari) || null;
+    },
+
+    /**
      * Tanggal setempat (bukan UTC) dari sebuah timestamp ISO.
      * Bali ada di UTC+8: memotong 10 huruf pertama dari ISO membuat penilaian
      * pukul 00.00–08.00 WITA terhitung sebagai "kemarin", sehingga angka

@@ -335,6 +335,7 @@ Di bagian bawah ada beberapa **tab** (semacam halaman):
 | `Rekap A2 2026-08` | Rekap Asing Regu 2 | Ditimpa otomatis |
 | `Rekap D1 2026-08` | Rekap Domestik Regu 1 | Ditimpa otomatis |
 | `Rekap D2 2026-08` | Rekap Domestik Regu 2 | Ditimpa otomatis |
+| `Rekap Kehadiran 2026-08` | **Kehadiran harian tiap guide** | Ditimpa otomatis |
 | `Rekap per Pos 2026-08` | Rincian per pos pemeriksaan | Ditimpa otomatis |
 
 Angka `2026-08` berarti **bulan Agustus 2026**. Tiap bulan dibuat tab baru.
@@ -370,6 +371,38 @@ Cara membacanya:
 | REVIEW | **Yang tertinggi**, supaya review yang tercatat di salah satu pos tidak hilang |
 
 Rincian tiap pos tetap bisa dilihat di tab **`Rekap per Pos`**.
+
+### 7b-2. Membaca tab Kehadiran
+
+Tab **`Rekap Kehadiran`** menjawab pertanyaan *"hari ini guide itu lewat berapa
+pos?"*
+
+```
+KEHADIRAN GUIDE — 2026-08                          Diperbarui: 3 Agu 2026 08.15
+Angka = berapa pos yang memeriksa guide itu pada hari tersebut (maksimal 3).
+Diperiksa dua kali di pos yang sama pada hari yang sama tetap dihitung satu.
+
+NAME                REGU    │ 2-8 │ 3-8 │ 4-8 │ TOTAL POS │ HARI HADIR
+Gusti Alit Astawa   A1      │  2  │  3  │     │     5     │     2
+I Gede Astawa       A1      │     │  1  │  1  │     2     │     2
+I Gede Budiarsana   A1      │     │     │     │     0     │     0
+```
+
+Cara membacanya:
+
+| Yang terlihat | Artinya |
+| --- | --- |
+| Angka **1**, **2**, atau **3** | Jumlah pos yang memeriksa guide itu hari tersebut |
+| **Kosong** | Tidak hadir atau tidak diperiksa sama sekali hari itu |
+| **TOTAL POS** | Jumlah seluruh kehadiran pos sebulan |
+| **HARI HADIR** | Berapa **hari** guide itu tercatat hadir, berapa pun jumlah posnya |
+
+**Satu pos bernilai satu.** Kalau seorang guide diperiksa dua kali di Pos 1 pada
+hari yang sama, angkanya tetap **1** — bukan 2. Ini berlaku otomatis, admin
+tidak perlu membersihkan apa pun.
+
+Kedua kolom terakhir berisi rumus, jadi kalau ada sel yang dikoreksi manual
+totalnya ikut menyesuaikan sendiri.
 
 ### 7c. ⏰ Cap "Diperbarui"
 
@@ -584,6 +617,13 @@ penilaian baru yang benar, lalu beri tahu admin agar baris yang keliru di tab
 Bisa, dan itu wajar karena satu guide melewati beberapa pos. Rekap
 menggabungkannya: UNI FORM & ID diambil yang paling buruk, REVIEW yang
 tertinggi. Rinciannya tetap ada di tab `Rekap per Pos`.
+
+**Kalau satu guide tidak sengaja dinilai dua kali di pos yang sama?**
+Aplikasi akan memberi tahu sebelum menyimpan: *"sudah dinilai di Pos 1 hari
+ini"*, dan Anda boleh memilih lanjut atau batal. Pilih **lanjut** kalau memang
+ingin memperbaiki penilaian yang salah pencet. Bagaimanapun pilihannya,
+**kehadirannya tetap dihitung 1, bukan 2** — jadi angka di tab
+`Rekap Kehadiran` tidak akan menggelembung.
 
 **Apakah data saya bisa dibaca orang lain kalau HP hilang?**
 Data di HP terenkripsi (AES-256). Namun tetap biasakan HP dinas dikunci dengan

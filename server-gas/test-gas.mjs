@@ -323,7 +323,7 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
   const perPos = doc.getSheetByName('Rekap per Pos 2026-07');
   const headPos = perPos.getRange(2, 1, 1, 15).getValues()[0];
   cek('Tab per pos memisahkan Pos 1, 2, dan 3',
-    headPos[2] === 'P1 Dinilai' && headPos[6] === 'P2 Dinilai' && headPos[10] === 'P3 Dinilai',
+    headPos[2] === 'P1 Hadir' && headPos[6] === 'P2 Hadir' && headPos[10] === 'P3 Hadir',
     headPos.slice(2, 4).join(' | '));
 
   const barisPos = perPos.getRange(3, 1, 2, 15).getValues();
@@ -351,6 +351,72 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
   sandbox.bangunRekap('2026-07');
   cek('Sel gabungan sisa susunan lama dilepas sebelum rekap ditulis ulang',
     !a2.merges.some(m => m.row === 5), `${a2.merges.length} gabungan tersisa`);
+
+  /* ---- Kehadiran: satu pos bernilai satu ---- */
+  {
+    const simpan = ev.data.slice();
+    ev.data = [ev.data[0]];
+    const B = (id, gid, pos, hari, jam, u, i, rv) =>
+      ev.data.push([id, `2026-07-${String(hari).padStart(2, '0')}T${jam}:00:00.000Z`,
+                    pos, gid, '?', u, i, rv, '', '']);
+
+    // G-001 tanggal 3: DUA KALI di pos 1 (harus tetap dihitung 1) + sekali di pos 2
+    B('k1', 'G-001', 1, 3, '02', 1, 1, 1);
+    B('k2', 'G-001', 1, 3, '05', 0, 1, 3);      // penilaian ulang di pos yang sama
+    B('k3', 'G-001', 2, 3, '07', 1, 1, 0);
+    // G-001 tanggal 4: tiga pos berbeda -> kehadiran 3
+    B('k4', 'G-001', 1, 4, '02', 1, 1, 0);
+    B('k5', 'G-001', 2, 4, '03', 1, 1, 0);
+    B('k6', 'G-001', 3, 4, '04', 1, 1, 0);
+    // G-005 tanggal 3: sekali saja
+    B('k7', 'G-005', 2, 3, '02', 1, 0, 2);
+
+    const pesanHadir = sandbox.bangunRekap('2026-07');
+    const kh = doc.getSheetByName('Rekap Kehadiran 2026-07');
+    cek('bangunRekap() membuat tab Rekap Kehadiran', !!kh, pesanHadir.slice(-45));
+
+    const headHadir = kh.getRange(3, 1, 1, 6).getValues()[0];
+    cek('Tab kehadiran memakai satu kolom per tanggal',
+      headHadir[0] === 'NAME' && headHadir[1] === 'REGU' &&
+      headHadir[2] === '3-7' && headHadir[3] === '4-7' &&
+      headHadir[4] === 'TOTAL POS' && headHadir[5] === 'HARI HADIR',
+      headHadir.join(' | '));
+
+    // Gusti Alit Astawa (G-001) ada di baris 5 — nama paling awal secara abjad
+    const bH = kh.getRange(5, 1, 1, 6).getValues()[0];
+    cek('Dua penilaian di pos yang SAMA pada hari yang sama dihitung 1',
+      bH[0] === 'Gusti Alit Astawa' && bH[2] === 2,
+      `tanggal 3: pos 1 dinilai 2x + pos 2 sekali -> kehadiran ${bH[2]} (harus 2)`);
+    cek('Tiga pos berbeda pada hari yang sama dihitung 3', bH[3] === 3, `tanggal 4: ${bH[3]}`);
+    cek('TOTAL POS & HARI HADIR memakai rumus yang tetap hidup',
+      String(bH[4]).indexOf('=SUM(C5:D5)') === 0 &&
+      String(bH[5]).indexOf('=COUNTIF(C5:D5,">0")') === 0,
+      `${bH[4]} / ${bH[5]}`);
+
+    const kosong = kh.getRange(6, 1, 1, 4).getValues()[0];
+    cek('Guide yang tidak pernah hadir tetap tercantum dengan sel kosong',
+      kosong[0] === 'I Gede Astawa' && kosong[2] === '' && kosong[3] === '',
+      kosong.slice(0, 4).join(' | '));
+
+    // Rincian per pos ikut memakai aturan yang sama
+    const pp = doc.getSheetByName('Rekap per Pos 2026-07');
+    const headPP = pp.getRange(2, 1, 1, 15).getValues()[0];
+    cek('Tab per pos memakai istilah Hadir, bukan Dinilai',
+      headPP[2] === 'P1 Hadir' && headPP[14] === 'Total Kehadiran', headPP[2] + ' | ' + headPP[14]);
+    const barisPP = pp.getRange(3, 1, 3, 15).getValues()
+      .find(b => b[0] === 'Gusti Alit Astawa');
+    cek('P1 Hadir menghitung HARI, bukan jumlah penilaian',
+      barisPP && barisPP[2] === 2,
+      barisPP ? `P1=${barisPP[2]} (tgl 3 dinilai 2x + tgl 4 sekali -> 2 hari)` : 'tidak ketemu');
+    cek('Nilai per pos ikut digabung dulu per hari (yang terburuk)',
+      barisPP && barisPP[3] === 1 && barisPP[4] === 2,
+      barisPP ? `P1 Uniform=${barisPP[3]} (tgl 3 -> 0, tgl 4 -> 1) ID=${barisPP[4]}` : '-');
+    cek('Total kehadiran sebulan benar',
+      barisPP && barisPP[14] === 5,
+      barisPP ? `${barisPP[14]} (tgl 3: 2 pos, tgl 4: 3 pos)` : '-');
+
+    ev.data = simpan;
+  }
 
   // Pemeriksaan mandiri: penilaian ada tapi guideId-nya tak dikenal
   {
