@@ -386,6 +386,10 @@ NAME                REGU    │ 2-8 │ 3-8 │ 4-8 │ TOTAL POS │ HARI HADIR
 Gusti Alit Astawa   A1      │  2  │  3  │     │     5     │     2
 I Gede Astawa       A1      │     │  1  │  1  │     2     │     2
 I Gede Budiarsana   A1      │     │     │     │     0     │     0
+            … dan seterusnya sampai 296 guide …
+
+JUMLAH GUIDE HADIR          │  2  │  3  │  1  │    47     │
+TOTAL KEHADIRAN POS         │  3  │  5  │  1  │    96     │
 ```
 
 Cara membacanya:
@@ -401,8 +405,27 @@ Cara membacanya:
 hari yang sama, angkanya tetap **1** — bukan 2. Ini berlaku otomatis, admin
 tidak perlu membersihkan apa pun.
 
-Kedua kolom terakhir berisi rumus, jadi kalau ada sel yang dikoreksi manual
-totalnya ikut menyesuaikan sendiri.
+#### Berapa guide yang hadir hari itu?
+
+Tabel di atas dibaca **menyamping**: satu guide, banyak tanggal. Untuk menjawab
+*"tanggal 3 Agustus ada berapa guide yang hadir?"*, lihat **dua baris paling
+bawah** — itu dibaca **menurun**:
+
+| Baris | Artinya |
+| --- | --- |
+| **JUMLAH GUIDE HADIR** | Berapa **orang** guide yang hadir pada tanggal itu |
+| **TOTAL KEHADIRAN POS** | Jumlah seluruh kunjungan pos hari itu |
+
+Contoh pada tanggal 3-8 di atas: **3 guide** hadir, menghasilkan **5** kunjungan
+pos — berarti sebagian dari mereka lewat lebih dari satu pos.
+
+Di kolom **TOTAL POS**, baris `JUMLAH GUIDE HADIR` berarti hal yang sedikit
+berbeda: berapa guide **berbeda** yang pernah hadir sepanjang bulan itu (contoh:
+47 dari 296). Angka itu bukan penjumlahan angka harian, karena satu guide bisa
+hadir berkali-kali.
+
+Seluruh angka pada kedua baris ini berupa rumus, jadi kalau ada sel yang
+dikoreksi manual totalnya ikut menyesuaikan sendiri.
 
 ### 7c. ⏰ Cap "Diperbarui"
 

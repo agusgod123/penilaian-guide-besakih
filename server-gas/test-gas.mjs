@@ -60,7 +60,7 @@ class FakeSheet {
       },
       setFontWeight() { return this; }, setFontColor() { return this; },
       setBackground() { return this; }, setHorizontalAlignment() { return this; },
-      setFontSize() { return this; },
+      setFontSize() { return this; }, setNote() { return this; },
     };
   }
   setFrozenRows(n) { this.frozen = n; }
@@ -397,6 +397,28 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     cek('Guide yang tidak pernah hadir tetap tercantum dengan sel kosong',
       kosong[0] === 'I Gede Astawa' && kosong[2] === '' && kosong[3] === '',
       kosong.slice(0, 4).join(' | '));
+
+    // Baris penutup — dibaca MENURUN: hari itu berapa guide yang hadir
+    const barisAkhir = 4 + 296;                    // 296 guide aktif
+    const fJml = kh.getRange(barisAkhir + 2, 1, 1, 6).getValues()[0];
+    const fPos = kh.getRange(barisAkhir + 3, 1, 1, 6).getValues()[0];
+    cek('Ada baris "JUMLAH GUIDE HADIR" di bawah tabel',
+      fJml[0] === 'JUMLAH GUIDE HADIR' && fPos[0] === 'TOTAL KEHADIRAN POS',
+      `${fJml[0]} / ${fPos[0]}`);
+    cek('Jumlah guide hadir per tanggal memakai COUNTIF sepanjang kolomnya',
+      fJml[2] === `=COUNTIF(C5:C${barisAkhir},">0")` &&
+      fJml[3] === `=COUNTIF(D5:D${barisAkhir},">0")`, fJml[2]);
+    cek('Total kehadiran pos per tanggal memakai SUM',
+      fPos[2] === `=SUM(C5:C${barisAkhir})`, fPos[2]);
+    cek('Kolom penutup menghitung guide berbeda sebulan, bukan menjumlah harian',
+      String(fJml[4]).indexOf('=COUNTIF(E5:E') === 0 &&
+      String(fPos[4]).indexOf('=SUM(E5:E') === 0, `${fJml[4]} / ${fPos[4]}`);
+
+    // Nilai rumusnya diperiksa juga secara terpisah, karena inilah angka yang
+    // menjawab "hari itu berapa guide yang hadir".
+    cek('Rumus JUMLAH GUIDE HADIR menjangkau seluruh baris guide, bukan sebagian',
+      fJml[2].includes('C5:C' + barisAkhir) && barisAkhir === 300,
+      `C5:C${barisAkhir} untuk 296 guide`);
 
     // Rincian per pos ikut memakai aturan yang sama
     const pp = doc.getSheetByName('Rekap per Pos 2026-07');

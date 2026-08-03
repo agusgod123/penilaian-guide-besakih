@@ -536,6 +536,7 @@ function doGet(e) {
   });
 }
 
+
 /* ================= POST ================= */
 /**
  * Menerima satu penilaian, atau batch { evaluations: [...] }.
@@ -1048,6 +1049,33 @@ function bangunRekapKehadiran_(bulan, ringkasan, guides) {
       }
       sh.getRange(5, kolTotal, rumus.length, 2).setFormulas(rumus)
         .setFontWeight('bold').setBackground('#FFF6E0');
+    }
+
+    // --- Baris penutup: dibaca MENURUN, menjawab "hari itu berapa guide hadir" ---
+    // Tabel di atas dibaca menyamping (satu guide, banyak tanggal). Dua baris
+    // ini kebalikannya: satu tanggal, berapa banyak guide.
+    if (tanggal.length) {
+      var barisAkhir = 4 + baris.length;
+      var fJml = ['JUMLAH GUIDE HADIR', ''];
+      var fPos = ['TOTAL KEHADIRAN POS', ''];
+      for (var kc = 3; kc <= 2 + tanggal.length; kc++) {
+        var h = kolomHuruf_(kc);
+        fJml.push('=COUNTIF(' + h + '5:' + h + barisAkhir + ',">0")');
+        fPos.push('=SUM(' + h + '5:' + h + barisAkhir + ')');
+      }
+      var hTotal = kolomHuruf_(kolTotal);
+      fJml.push('=COUNTIF(' + hTotal + '5:' + hTotal + barisAkhir + ',">0")', '');
+      fPos.push('=SUM(' + hTotal + '5:' + hTotal + barisAkhir + ')', '');
+
+      var barisJml = barisAkhir + 2;
+      sh.getRange(barisJml, 1, 2, jmlKolom).setFormulas([fJml, fPos]);
+      sh.getRange(barisJml, 1, 2, jmlKolom)
+        .setFontWeight('bold').setBackground('#E7F3EC');
+      sh.getRange(barisJml, 1, 2, 1).setHorizontalAlignment('left');
+      // Kolom TOTAL POS pada baris pertama berarti "guide berbeda sebulan"
+      sh.getRange(barisJml, kolTotal).setNote(
+        'Berapa guide BERBEDA yang hadir sepanjang bulan ini — ' +
+        'bukan penjumlahan angka harian, karena satu guide bisa hadir berkali-kali.');
     }
   }
 

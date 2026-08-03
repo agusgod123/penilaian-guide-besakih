@@ -498,6 +498,22 @@ karena kegunaan utamanya adalah untuk disandingkan.
 | F-11.3a.6 | Tersedia kolom `TOTAL POS` (jumlah kehadiran pos sebulan) dan `HARI HADIR` (jumlah hari hadir), keduanya berupa rumus | S |
 | F-11.3a.7 | Aplikasi **memperingatkan** bila guide yang sama akan dinilai lagi di pos yang sama pada hari yang sama, tetapi tetap mengizinkan — penilaian kedua kadang koreksi | W |
 | F-11.3a.8 | Peringatan itu memakai riwayat perangkat sendiri; deteksi lintas perangkat tidak dimungkinkan karena §5 melarang endpoint pembacaan | S |
+| F-11.3a.9 | Tab `Rekap Kehadiran` ditutup dua baris rumus per tanggal: **JUMLAH GUIDE HADIR** (`COUNTIF > 0`) dan **TOTAL KEHADIRAN POS** (`SUM`) | W |
+| F-11.3a.10 | Pada kolom TOTAL POS, baris JUMLAH GUIDE HADIR berarti jumlah guide **berbeda** sepanjang bulan — bukan penjumlahan angka harian | W |
+
+> **Kenapa dua baris penutup itu wajib:** tabel kehadiran dibaca menyamping
+> (satu guide, banyak tanggal). Pertanyaan "hari itu berapa guide yang hadir"
+> justru dibaca menurun. Tanpa baris penutup, admin harus menghitung sendiri
+> berapa sel yang terisi di satu kolom tanggal.
+
+**Angka ini sengaja TIDAK ditampilkan di aplikasi.** Perangkat hanya mengenal
+riwayatnya sendiri, sehingga angka yang muncul di HP Pos 1 hanya akan mencakup
+Pos 1 — dan angka separuh benar lebih berbahaya daripada tidak ada angka sama
+sekali. Menampilkan angka lintas pos menuntut endpoint pembacaan baru pada web
+app berakses publik, yang dilarang F-5.6. Spreadsheet tetap menjadi satu-satunya
+sumber angka resmi. Sebagai gantinya, label statistik di layar utama berbunyi
+**"Penilaian Hari Ini"**, bukan "Total Hari Ini", supaya tidak disangka jumlah
+guide.
 
 > **Alasan F-11.3a.2:** kehadiran dipakai untuk menghitung reward. Tanpa aturan
 > ini, satu guide yang kebetulan diperiksa dua kali di pos yang sama akan
@@ -703,6 +719,7 @@ Nomor AC-1…AC-8 dipertahankan dari versi 1.
 | **AC-21** | Dua penilaian di pos yang sama pada hari yang sama dihitung sebagai kehadiran **1** | Nilai satu guide dua kali di Pos 1, lihat tab Kehadiran |
 | **AC-22** | Tiga pos berbeda pada hari yang sama dihitung sebagai kehadiran **3** | Nilai satu guide di Pos 1, 2, dan 3 |
 | **AC-23** | Aplikasi memperingatkan penilaian ganda tetapi tetap mengizinkan | Nilai guide yang sama dua kali di pos yang sama |
+| **AC-24** | Tab Kehadiran menjawab "hari itu berapa guide hadir" lewat dua baris penutup berumus | Lihat baris di bawah daftar guide |
 
 ---
 
@@ -786,6 +803,7 @@ pembahasan ulang:
 | L-1 | Akun dan peran pengguna | Bertentangan dengan K-1 |
 | L-2 | Menyunting atau menghapus penilaian dari aplikasi | Bertentangan dengan K-4 |
 | L-3 | Membaca daftar penilaian lewat endpoint | Bertentangan dengan F-5.6 |
+| L-3a | Menampilkan jumlah guide hadir **lintas pos** di aplikasi | Butuh endpoint pembacaan baru pada web app publik; angka hanya-perangkat-sendiri menyesatkan. Lihat §11.3a |
 | L-4 | Foto atau lampiran | Kuota dan penyimpanan perangkat |
 | L-5 | Lokasi GPS | Tidak dibutuhkan; menambah beban privasi |
 | L-6 | Notifikasi *push* | Tidak ada kebutuhan yang jelas |
