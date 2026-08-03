@@ -187,21 +187,19 @@
     },
 
     /**
-     * Cari penilaian atas guide yang sama, di pos yang sama, pada hari yang
-     * sama — dipakai untuk memperingatkan penilaian ganda. Satu pos hanya
-     * bernilai satu kehadiran, jadi penilaian kedua tidak menambah apa pun
-     * kecuali memang dimaksudkan sebagai koreksi.
+     * Cari penilaian atas guide yang sama pada hari yang sama — di pos MANA
+     * PUN. Satu hari bernilai satu kehadiran, jadi pemeriksaan berikutnya tidak
+     * menambah angka apa pun; staff perlu tahu itu supaya tidak membuang waktu.
      *
-     * Hanya melihat riwayat perangkat ini. Itu memadai karena penilaian ganda
-     * di pos yang sama umumnya berasal dari perangkat yang sama juga; server
-     * sengaja tidak menyediakan cara membaca kembali daftar penilaian.
+     * PENTING: hanya melihat riwayat perangkat ini. Kalau tiap pos memakai HP
+     * sendiri, HP di Pos 2 tidak akan tahu apa yang dicatat Pos 1. Mengetahui
+     * itu menuntut endpoint pembacaan di server, yang dilarang §5 F-5.6.
      */
-    async penilaianKembar(guideId, pos, iso) {
+    async penilaianHariIni(guideId, iso) {
       const hari = DB.tanggalLokal(iso);
       return (await DB.all()).find(e =>
         !e.corrupt &&
         e.guideId === guideId &&
-        Number(e.pos) === Number(pos) &&
         DB.tanggalLokal(e.timestamp) === hari) || null;
     },
 

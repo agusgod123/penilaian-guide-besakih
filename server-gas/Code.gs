@@ -829,11 +829,13 @@ function rangkumBulan_(bulan) {
       var hari = perPosHari[g][p];
       var jml = 0, jUniform = 0, jIdCard = 0, jReview = 0;
       for (var t in hari) {
-        jml++;                                   // satu hari di pos ini = satu kehadiran
+        jml++;                                   // satu hari di pos ini = satu pemeriksaan
         jUniform += hari[t].uniform;
         jIdCard += hari[t].idCard;
         jReview += hari[t].review;
-        kehadiran[g][t] = (kehadiran[g][t] || 0) + 1;
+        // SATU HARI BERNILAI SATU, berapa pun pos yang dilewati. Guide yang
+        // diperiksa di tiga pos tetap dihitung hadir satu kali hari itu.
+        kehadiran[g][t] = 1;
       }
       perPos[g][p] = { jml: jml, uniform: jUniform, idCard: jIdCard, review: jReview };
     }
@@ -981,18 +983,21 @@ function kolomHuruf_(n) {
 }
 
 /**
- * Tab kehadiran harian — "satu pos bernilai satu".
+ * Tab kehadiran harian — "satu hari bernilai satu".
  *
  * Baris  = seluruh guide aktif (yang belum pernah hadir pun ikut tercantum,
  *          supaya terlihat siapa yang tidak pernah diperiksa)
- * Kolom  = tanggal, berisi angka 1..3 = berapa pos yang memeriksa hari itu
+ * Kolom  = tanggal, berisi 1 bila guide itu hadir pada hari tersebut
  * Kosong = tidak hadir atau tidak diperiksa sama sekali hari itu
+ *
+ * Guide yang diperiksa di beberapa pos pada hari yang sama tetap bernilai 1.
+ * Rincian pos mana saja yang memeriksanya ada di tab "Rekap per Pos".
  */
 function bangunRekapKehadiran_(bulan, ringkasan, guides) {
   var sh = siapkanTab_('Rekap Kehadiran ' + bulan);
   var tanggal = ringkasan.tanggal;
-  var kolTotal = 3 + tanggal.length;             // NAME, REGU, tanggal..., lalu 2 kolom total
-  var jmlKolom = kolTotal + 1;
+  var kolTotal = 3 + tanggal.length;             // NAME, REGU, tanggal..., lalu kolom total
+  var jmlKolom = kolTotal;
 
   sh.getRange(1, 1).setValue('KEHADIRAN GUIDE — ' + bulan);
   sh.getRange(1, 1, 1, jmlKolom)
@@ -1002,8 +1007,8 @@ function bangunRekapKehadiran_(bulan, ringkasan, guides) {
     .setFontWeight('normal').setFontSize(9).setHorizontalAlignment('right');
 
   sh.getRange(2, 1).setValue(
-    'Angka = berapa pos yang memeriksa guide itu pada hari tersebut (maksimal 3). ' +
-    'Diperiksa dua kali di pos yang sama pada hari yang sama tetap dihitung satu.')
+    '1 = guide hadir pada hari itu. Satu hari bernilai satu, berapa pun pos yang ' +
+    'memeriksanya — pos mana saja ada di tab "Rekap per Pos".')
     .setFontSize(9).setFontColor('#5C6360');
 
   var head = ['NAME', 'REGU'];
@@ -1011,7 +1016,7 @@ function bangunRekapKehadiran_(bulan, ringkasan, guides) {
     var bagian = tanggal[i].split('-');
     head.push(Number(bagian[2]) + '-' + Number(bagian[1]));
   }
-  head.push('TOTAL POS', 'HARI HADIR');
+  head.push('TOTAL HARI HADIR');
   sh.getRange(3, 1, 1, head.length).setValues([head])
     .setFontWeight('bold').setFontColor('#FFFFFF').setBackground('#0B5D3B')
     .setHorizontalAlignment('center');
@@ -1032,7 +1037,7 @@ function bangunRekapKehadiran_(bulan, ringkasan, guides) {
         row.push(n || '');                       // kosong, bukan 0, bila tidak hadir
         if (n) adaIsi++;
       }
-      row.push('', '');                          // tempat rumus
+      row.push('');                              // tempat rumus
       baris.push(row);
     }
     sh.getRange(5, 1, baris.length, head.length).setValues(baris);
@@ -1042,40 +1047,33 @@ function bangunRekapKehadiran_(bulan, ringkasan, guides) {
       var rumus = [];
       for (var b = 0; b < baris.length; b++) {
         var nb = 5 + b;
-        rumus.push([
-          '=SUM(' + awal + nb + ':' + akhir + nb + ')',
-          '=COUNTIF(' + awal + nb + ':' + akhir + nb + ',">0")'
-        ]);
+        rumus.push(['=SUM(' + awal + nb + ':' + akhir + nb + ')']);
       }
-      sh.getRange(5, kolTotal, rumus.length, 2).setFormulas(rumus)
+      sh.getRange(5, kolTotal, rumus.length, 1).setFormulas(rumus)
         .setFontWeight('bold').setBackground('#FFF6E0');
     }
 
     // --- Baris penutup: dibaca MENURUN, menjawab "hari itu berapa guide hadir" ---
-    // Tabel di atas dibaca menyamping (satu guide, banyak tanggal). Dua baris
-    // ini kebalikannya: satu tanggal, berapa banyak guide.
+    // Tabel di atas dibaca menyamping (satu guide, banyak tanggal). Baris ini
+    // kebalikannya: satu tanggal, berapa banyak guide.
     if (tanggal.length) {
       var barisAkhir = 4 + baris.length;
       var fJml = ['JUMLAH GUIDE HADIR', ''];
-      var fPos = ['TOTAL KEHADIRAN POS', ''];
       for (var kc = 3; kc <= 2 + tanggal.length; kc++) {
         var h = kolomHuruf_(kc);
         fJml.push('=COUNTIF(' + h + '5:' + h + barisAkhir + ',">0")');
-        fPos.push('=SUM(' + h + '5:' + h + barisAkhir + ')');
       }
       var hTotal = kolomHuruf_(kolTotal);
-      fJml.push('=COUNTIF(' + hTotal + '5:' + hTotal + barisAkhir + ',">0")', '');
-      fPos.push('=SUM(' + hTotal + '5:' + hTotal + barisAkhir + ')', '');
+      fJml.push('=COUNTIF(' + hTotal + '5:' + hTotal + barisAkhir + ',">0")');
 
       var barisJml = barisAkhir + 2;
-      sh.getRange(barisJml, 1, 2, jmlKolom).setFormulas([fJml, fPos]);
-      sh.getRange(barisJml, 1, 2, jmlKolom)
+      sh.getRange(barisJml, 1, 1, jmlKolom).setFormulas([fJml]);
+      sh.getRange(barisJml, 1, 1, jmlKolom)
         .setFontWeight('bold').setBackground('#E7F3EC');
-      sh.getRange(barisJml, 1, 2, 1).setHorizontalAlignment('left');
-      // Kolom TOTAL POS pada baris pertama berarti "guide berbeda sebulan"
+      sh.getRange(barisJml, 1).setHorizontalAlignment('left');
       sh.getRange(barisJml, kolTotal).setNote(
-        'Berapa guide BERBEDA yang hadir sepanjang bulan ini — ' +
-        'bukan penjumlahan angka harian, karena satu guide bisa hadir berkali-kali.');
+        'Berapa guide BERBEDA yang hadir sepanjang bulan ini — bukan penjumlahan ' +
+        'angka harian, karena satu guide bisa hadir pada banyak hari.');
     }
   }
 
@@ -1084,8 +1082,7 @@ function bangunRekapKehadiran_(bulan, ringkasan, guides) {
   sh.setColumnWidth(1, 210);
   sh.setColumnWidth(2, 90);
   for (var c = 3; c <= 2 + tanggal.length; c++) sh.setColumnWidth(c, 34);
-  sh.setColumnWidth(kolTotal, 82);
-  sh.setColumnWidth(kolTotal + 1, 82);
+  sh.setColumnWidth(kolTotal, 120);
   return { baris: urut.length, terisi: adaIsi };
 }
 
@@ -1094,9 +1091,9 @@ function bangunRekapPerPos_(bulan, ringkasan, guides) {
   var sh = siapkanTab_('Rekap per Pos ' + bulan);
   var head = ['NAME', 'REGU'];
   for (var p = 1; p <= 3; p++) {
-    head.push('P' + p + ' Hadir', 'P' + p + ' Uniform', 'P' + p + ' ID', 'P' + p + ' Review');
+    head.push('P' + p + ' Diperiksa', 'P' + p + ' Uniform', 'P' + p + ' ID', 'P' + p + ' Review');
   }
-  head.push('Total Kehadiran');
+  head.push('Total Diperiksa');
 
   sh.getRange(1, 1).setValue('RINCIAN PER POS PEMERIKSAAN — ' + bulan);
   sh.getRange(1, 1, 1, head.length)

@@ -324,7 +324,7 @@ check('Angka tidak dikutip agar langsung bisa dijumlah di Excel',
   !/;"[01]"/.test(csv));
 check('Rekap CSV membawa kolom KEHADIRAN', csv.includes('KEHADIRAN'));
 check('Rekap per pos memakai satuan guide-hari, bukan jumlah penilaian',
-  csv.includes('Hadir (guide-hari)'));
+  csv.includes('Diperiksa (guide-hari)'));
 
 
 // Nilai entri yang tidak terbaca tidak boleh ikut dihitung sebagai 0
@@ -600,13 +600,13 @@ check('Pengiriman ulang tidak menggandakan data di server (append-only)', before
   check('Penilaian pertama tersimpan', sesudahSatu === awal + 1, `${awal} -> ${sesudahSatu}`);
 
   const gid = (await window.DB.all()).find(e => e.guideName === NAMA).guideId;
-  const kembar = await window.DB.penilaianKembar(gid, POS, new Date().toISOString());
-  check('penilaianKembar() menemukan penilaian di pos & hari yang sama',
+  const kembar = await window.DB.penilaianHariIni(gid, new Date().toISOString());
+  check('penilaianHariIni() menemukan penilaian hari ini',
     !!kembar && kembar.guideName === NAMA, kembar ? `Pos ${kembar.pos}` : 'tidak ketemu');
-  check('Pos berbeda tidak dianggap kembar',
-    (await window.DB.penilaianKembar(gid, 1, new Date().toISOString())) === null);
-  check('Hari berbeda tidak dianggap kembar',
-    (await window.DB.penilaianKembar(gid, POS, '2020-01-01T02:00:00.000Z')) === null);
+  check('Pemeriksaan di pos LAIN pun ikut terdeteksi, bukan hanya pos yang sama',
+    (await window.DB.penilaianHariIni(gid, new Date().toISOString())) !== null);
+  check('Hari berbeda tidak dianggap sudah dinilai',
+    (await window.DB.penilaianHariIni(gid, '2020-01-01T02:00:00.000Z')) === null);
 
   // Penilaian kedua di pos yang sama tetap boleh disimpan sebagai koreksi
   // (window.confirm sudah di-stub menjadi "ya" di bagian penyiapan).
@@ -626,7 +626,7 @@ check('Pengiriman ulang tidak menggandakan data di server (append-only)', before
   const barisRinci = csvKembar.slice(batas).split('\r\n')
     .filter(b => b.includes(NAMA) && /^\d{4}-\d{2}-\d{2};/.test(b));
   const kolom = (barisRekap[0] || '').split(';');
-  check('Dua penilaian di pos yang sama tetap KEHADIRAN 1',
+  check('Dua pemeriksaan pada hari yang sama tetap KEHADIRAN 1',
     barisRekap.length === 1 && barisRinci.length === 2 &&
     kolom[7] === '1' && kolom[9] === '2',
     barisRekap[0]

@@ -320,14 +320,13 @@
    */
   async function tandaiKembar(g) {
     const el = $('#guidePicked');
-    const pos = Number($('#posSelect').value);
     let kembar = null;
-    try { kembar = await DB.penilaianKembar(g.guideId, pos, new Date().toISOString()); }
+    try { kembar = await DB.penilaianHariIni(g.guideId, new Date().toISOString()); }
     catch { return; }
     // Guide sudah diganti selagi menunggu — jangan timpa keterangannya
     if (!kembar || el.dataset.guideId !== g.guideId) return;
-    el.innerHTML += `<br><small>⚠️ Sudah dinilai di Pos ${pos} hari ini — ` +
-                    `kehadiran tetap dihitung 1</small>`;
+    el.innerHTML += `<br><small>⚠️ Sudah dinilai hari ini di Pos ${esc(kembar.pos)} — ` +
+                    `tidak perlu dinilai lagi, kehadirannya tetap 1</small>`;
   }
 
   /** Tawarkan nama-nama yang mungkin dimaksud saat ketikan masih ambigu. */
@@ -359,19 +358,23 @@
 
     const pos = Number($('#posSelect').value);
 
-    // Satu pos hanya bernilai satu kehadiran per hari. Penilaian kedua di pos
-    // yang sama tidak menambah apa pun di rekap — tapi tetap diizinkan, karena
-    // kadang memang dimaksudkan sebagai koreksi dari yang pertama.
-    const kembar = await DB.penilaianKembar(g.guideId, pos, new Date().toISOString());
+    // Satu HARI bernilai satu kehadiran, di pos mana pun. Pemeriksaan berikutnya
+    // tidak menambah angka apa pun — tapi tetap diizinkan, karena kadang memang
+    // koreksi, dan karena pelanggaran yang baru muncul di pos berikutnya tetap
+    // layak dicatat.
+    const kembar = await DB.penilaianHariIni(g.guideId, new Date().toISOString());
     if (kembar) {
       const c = kembar.criteria || {};
+      const posLain = Number(kembar.pos) !== pos;
       const lanjut = confirm(
-        `${g.guideName} sudah dinilai di Pos ${pos} hari ini ` +
+        `${g.guideName} sudah dinilai hari ini di Pos ${kembar.pos} ` +
         `(pukul ${fmtTime(kembar.timestamp).split(' ').pop()}, ` +
         `Uniform ${c.uniform ? 'Ya' : 'Tidak'}, ID ${c.idCard ? 'Ya' : 'Tidak'}, ` +
         `Review ${Number(c.review) || 0}).\n\n` +
-        `Kehadirannya tetap dihitung 1, bukan 2.\n\n` +
-        `Lanjutkan menyimpan sebagai koreksi?`);
+        `Kehadirannya tetap dihitung 1 untuk hari ini.\n\n` +
+        (posLain
+          ? `Lanjutkan hanya bila ada yang berubah sejak Pos ${kembar.pos}?`
+          : `Lanjutkan menyimpan sebagai koreksi?`));
       if (!lanjut) { toast('Penilaian dibatalkan', 'warn', '↩️'); return; }
     }
 
@@ -562,23 +565,23 @@
 
     judul('REKAP HARIAN PER GUIDE — cocokkan dengan tab Rekap A1/A2/D1/D2 di spreadsheet');
     out.push(barisCsv(['(Bila satu guide dinilai beberapa kali sehari: UNI FORM & ID diambil yang paling buruk, REVIEW yang tertinggi)']));
-    out.push(barisCsv(['(KEHADIRAN = berapa pos yang memeriksa hari itu. Dinilai dua kali di pos yang sama tetap dihitung 1)']));
+    out.push(barisCsv(['(KEHADIRAN selalu 1: satu hari bernilai satu, berapa pun pos yang memeriksa)']));
     out.push(barisCsv(['Tanggal', 'Nama Guide', 'guideId', 'Regu', 'UNI FORM', 'ID', 'REVIEW',
-                       'KEHADIRAN', 'Dinilai di Pos', 'Jumlah Penilaian']));
+                       'KEHADIRAN', 'Diperiksa di Pos', 'Jumlah Pemeriksaan']));
     harian.forEach(h => out.push(barisCsv([
       h.tgl, h.guideName, h.guideId, reguGuide(h.guideId),
       h.uniform, h.idCard, h.review,
-      h.pos.size, [...h.pos].sort().join(' & '), h.jml,
+      1, [...h.pos].sort().join(' & '), h.jml,
     ])));
 
     judul('REKAP PER POS PEMERIKSAAN');
-    out.push(barisCsv(['(Hadir dihitung per guide per hari — bukan jumlah penilaian)']));
-    out.push(barisCsv(['Pos', 'Hadir (guide-hari)', 'Uniform Sesuai', 'ID Sesuai', 'Total Review']));
+    out.push(barisCsv(['(Diperiksa dihitung per guide per hari di pos itu — bukan jumlah penilaian)']));
+    out.push(barisCsv(['Pos', 'Diperiksa (guide-hari)', 'Uniform Sesuai', 'ID Sesuai', 'Total Review']));
     perPos.forEach(p => out.push(barisCsv([p.pos, p.hadir, p.uniform, p.idCard, p.review])));
 
     judul('REKAP PER TANGGAL');
-    out.push(barisCsv(['Tanggal', 'Total Kehadiran', 'Guide Berbeda', 'Jumlah Penilaian']));
-    perTgl.forEach(t => out.push(barisCsv([t.tgl, t.hadir, t.guides.size, t.jml])));
+    out.push(barisCsv(['Tanggal', 'Guide Hadir', 'Jumlah Pemeriksaan']));
+    perTgl.forEach(t => out.push(barisCsv([t.tgl, t.guides.size, t.jml])));
 
     judul('RINCIAN SEMUA PENILAIAN');
     out.push(barisCsv(['Tanggal', 'Jam', 'Pos', 'guideId', 'Nama Guide', 'Uniform', 'ID-Card',

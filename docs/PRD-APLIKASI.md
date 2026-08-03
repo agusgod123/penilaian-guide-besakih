@@ -490,15 +490,15 @@ karena kegunaan utamanya adalah untuk disandingkan.
 
 | ID | Kebutuhan | Prioritas |
 | --- | --- | --- |
-| F-11.3a.1 | **Kehadiran seorang guide pada satu hari = jumlah POS BERBEDA yang memeriksanya**, bernilai 0 sampai 3 | W |
-| F-11.3a.2 | Diperiksa lebih dari sekali di pos yang sama pada hari yang sama tetap dihitung **satu** | W |
+| F-11.3a.1 | **Kehadiran seorang guide pada satu hari bernilai 0 atau 1** — hadir atau tidak. Berapa pun pos yang memeriksanya, satu hari tetap bernilai satu | W |
+| F-11.3a.2 | Berlaku juga untuk pemeriksaan berulang di pos yang sama maupun di pos berbeda | W |
 | F-11.3a.3 | Penggabungan nilai dilakukan pada tingkat `(guide, pos, tanggal)` lebih dulu, baru dijumlahkan lintas pos | W |
-| F-11.3a.4 | Kolom `Pn Hadir` pada tab per pos menghitung **jumlah hari** guide itu diperiksa di pos n, bukan jumlah penilaian | W |
+| F-11.3a.4 | Kolom `Pn Diperiksa` pada tab per pos menghitung **jumlah hari** guide itu diperiksa di pos n, bukan jumlah penilaian. Di sinilah rincian pos disimpan | W |
 | F-11.3a.5 | Tab `Rekap Kehadiran` memuat seluruh guide aktif; yang belum pernah hadir tetap tercantum dengan sel kosong | W |
-| F-11.3a.6 | Tersedia kolom `TOTAL POS` (jumlah kehadiran pos sebulan) dan `HARI HADIR` (jumlah hari hadir), keduanya berupa rumus | S |
-| F-11.3a.7 | Aplikasi **memperingatkan** bila guide yang sama akan dinilai lagi di pos yang sama pada hari yang sama, tetapi tetap mengizinkan — penilaian kedua kadang koreksi | W |
+| F-11.3a.6 | Tersedia kolom `TOTAL HARI HADIR` berupa rumus `SUM` | S |
+| F-11.3a.7 | Aplikasi **memperingatkan** bila guide yang sama akan dinilai lagi pada hari yang sama di pos **mana pun**, tetapi tetap mengizinkan — pelanggaran yang baru muncul di pos berikutnya tetap perlu tercatat | W |
 | F-11.3a.8 | Peringatan itu memakai riwayat perangkat sendiri; deteksi lintas perangkat tidak dimungkinkan karena §5 melarang endpoint pembacaan | S |
-| F-11.3a.9 | Tab `Rekap Kehadiran` ditutup dua baris rumus per tanggal: **JUMLAH GUIDE HADIR** (`COUNTIF > 0`) dan **TOTAL KEHADIRAN POS** (`SUM`) | W |
+| F-11.3a.9 | Tab `Rekap Kehadiran` ditutup satu baris rumus per tanggal: **JUMLAH GUIDE HADIR** (`COUNTIF > 0`) | W |
 | F-11.3a.10 | Pada kolom TOTAL POS, baris JUMLAH GUIDE HADIR berarti jumlah guide **berbeda** sepanjang bulan — bukan penjumlahan angka harian | W |
 
 > **Kenapa dua baris penutup itu wajib:** tabel kehadiran dibaca menyamping
@@ -515,10 +515,10 @@ sumber angka resmi. Sebagai gantinya, label statistik di layar utama berbunyi
 **"Penilaian Hari Ini"**, bukan "Total Hari Ini", supaya tidak disangka jumlah
 guide.
 
-> **Alasan F-11.3a.2:** kehadiran dipakai untuk menghitung reward. Tanpa aturan
-> ini, satu guide yang kebetulan diperiksa dua kali di pos yang sama akan
-> terhitung hadir dua kali, sedangkan rekannya yang lewat sekali di tiap pos
-> hanya terhitung tiga — angkanya jadi tidak sebanding.
+> **Alasan F-11.3a.1:** kehadiran dipakai untuk menghitung reward. Guide yang
+> kebetulan melewati tiga pos tidak lebih rajin daripada yang melewati satu pos
+> — jalur jalannya saja yang berbeda. Menghitung per pos membuat angkanya
+> menghadiahi kebetulan, bukan kepatuhan.
 
 ### 11.4 Kapan rekap disusun
 
@@ -717,8 +717,8 @@ Nomor AC-1…AC-8 dipertahankan dari versi 1.
 | **AC-19** | Entri tidak terbaca tidak digambar sebagai nilai `0` | Rusakkan satu catatan, lihat Riwayat |
 | **AC-20** | Guide dengan `aktif = FALSE` tidak muncul, datanya tetap utuh | Nonaktifkan satu guide |
 | **AC-21** | Dua penilaian di pos yang sama pada hari yang sama dihitung sebagai kehadiran **1** | Nilai satu guide dua kali di Pos 1, lihat tab Kehadiran |
-| **AC-22** | Tiga pos berbeda pada hari yang sama dihitung sebagai kehadiran **3** | Nilai satu guide di Pos 1, 2, dan 3 |
-| **AC-23** | Aplikasi memperingatkan penilaian ganda tetapi tetap mengizinkan | Nilai guide yang sama dua kali di pos yang sama |
+| **AC-22** | Tiga pos berbeda pada hari yang sama juga dihitung sebagai kehadiran **1** | Nilai satu guide di Pos 1, 2, dan 3 |
+| **AC-23** | Aplikasi memperingatkan penilaian ulang pada hari yang sama di pos mana pun, tetapi tetap mengizinkan | Nilai guide yang sama di dua pos berbeda pada satu HP |
 | **AC-24** | Tab Kehadiran menjawab "hari itu berapa guide hadir" lewat dua baris penutup berumus | Lihat baris di bawah daftar guide |
 
 ---
