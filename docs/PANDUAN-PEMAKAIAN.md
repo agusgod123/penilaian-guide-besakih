@@ -379,34 +379,31 @@ pos?"*
 
 ```
 KEHADIRAN GUIDE — 2026-08                          Diperbarui: 3 Agu 2026 08.15
-1 = guide hadir pada hari itu. Satu hari bernilai satu, berapa pun pos yang
-memeriksanya — pos mana saja ada di tab "Rekap per Pos".
+Angka = berapa pos yang memeriksa guide itu pada hari tersebut (maksimal 3).
+Diperiksa dua kali di pos yang sama pada hari yang sama tetap dihitung satu.
 
-NAME                REGU    │ 2-8 │ 3-8 │ 4-8 │ TOTAL HARI HADIR
-Gusti Alit Astawa   A1      │  1  │  1  │     │        2
-I Gede Astawa       A1      │     │  1  │  1  │        2
-I Gede Budiarsana   A1      │     │     │     │        0
+NAME                REGU    │ 2-8 │ 3-8 │ 4-8 │ TOTAL POS │ HARI HADIR
+Gusti Alit Astawa   A1      │  2  │  3  │     │     5     │     2
+I Gede Astawa       A1      │     │  1  │  1  │     2     │     2
+I Gede Budiarsana   A1      │     │     │     │     0     │     0
             … dan seterusnya sampai 296 guide …
 
-JUMLAH GUIDE HADIR          │  2  │  3  │  1  │       47
+JUMLAH GUIDE HADIR          │  2  │  3  │  1  │    47     │
+TOTAL KEHADIRAN POS         │  3  │  5  │  1  │    96     │
 ```
 
 Cara membacanya:
 
 | Yang terlihat | Artinya |
 | --- | --- |
-| Angka **1** | Guide itu **hadir** pada hari tersebut |
+| Angka **1**, **2**, atau **3** | Jumlah pos yang memeriksa guide itu hari tersebut |
 | **Kosong** | Tidak hadir atau tidak diperiksa sama sekali hari itu |
-| **TOTAL HARI HADIR** | Berapa **hari** guide itu tercatat hadir sebulan |
+| **TOTAL POS** | Jumlah seluruh kehadiran pos sebulan |
+| **HARI HADIR** | Berapa **hari** guide itu tercatat hadir, berapa pun jumlah posnya |
 
-**Satu hari bernilai satu.** Seorang guide yang lewat Pos 1, Pos 2, dan Pos 3
-pada hari yang sama tetap dihitung **hadir 1 kali**, bukan 3. Begitu juga kalau
-ia diperiksa dua kali di pos yang sama. Ini berlaku otomatis — admin tidak perlu
-membersihkan apa pun.
-
-Ingin tahu **pos mana saja** yang memeriksanya? Itu ada di tab
-**`Rekap per Pos`**, pada kolom `P1 Diperiksa`, `P2 Diperiksa`, dan
-`P3 Diperiksa`.
+**Satu pos bernilai satu.** Kalau seorang guide diperiksa dua kali di Pos 1 pada
+hari yang sama, angkanya tetap **1** — bukan 2. Ini berlaku otomatis, admin
+tidak perlu membersihkan apa pun.
 
 #### Berapa guide yang hadir hari itu?
 
@@ -414,16 +411,21 @@ Tabel di atas dibaca **menyamping**: satu guide, banyak tanggal. Untuk menjawab
 *"tanggal 3 Agustus ada berapa guide yang hadir?"*, lihat **dua baris paling
 bawah** — itu dibaca **menurun**:
 
-Baris **JUMLAH GUIDE HADIR** menjawabnya langsung: berapa **orang** guide yang
-hadir pada tanggal itu. Contoh pada tanggal 3-8 di atas: **3 guide**.
+| Baris | Artinya |
+| --- | --- |
+| **JUMLAH GUIDE HADIR** | Berapa **orang** guide yang hadir pada tanggal itu |
+| **TOTAL KEHADIRAN POS** | Jumlah seluruh kunjungan pos hari itu |
 
-Di kolom paling kanan, baris itu berarti hal yang sedikit berbeda: berapa guide
-**berbeda** yang pernah hadir sepanjang bulan itu (contoh: 47 dari 296). Angka
-itu bukan penjumlahan angka harian, karena satu guide bisa hadir pada banyak
-hari.
+Contoh pada tanggal 3-8 di atas: **3 guide** hadir, menghasilkan **5** kunjungan
+pos — berarti sebagian dari mereka lewat lebih dari satu pos.
 
-Seluruh angkanya berupa rumus, jadi kalau ada sel yang dikoreksi manual totalnya
-ikut menyesuaikan sendiri.
+Di kolom **TOTAL POS**, baris `JUMLAH GUIDE HADIR` berarti hal yang sedikit
+berbeda: berapa guide **berbeda** yang pernah hadir sepanjang bulan itu (contoh:
+47 dari 296). Angka itu bukan penjumlahan angka harian, karena satu guide bisa
+hadir berkali-kali.
+
+Seluruh angka pada kedua baris ini berupa rumus, jadi kalau ada sel yang
+dikoreksi manual totalnya ikut menyesuaikan sendiri.
 
 ### 7c. ⏰ Cap "Diperbarui"
 
@@ -639,19 +641,12 @@ Bisa, dan itu wajar karena satu guide melewati beberapa pos. Rekap
 menggabungkannya: UNI FORM & ID diambil yang paling buruk, REVIEW yang
 tertinggi. Rinciannya tetap ada di tab `Rekap per Pos`.
 
-**Kalau satu guide sudah dinilai di pos lain hari itu, apakah perlu dinilai lagi?**
-**Tidak perlu.** Kehadirannya sudah tercatat, dan menilainya lagi tidak menambah
-angka apa pun. Aplikasi akan memberi tahu begitu namanya dipilih:
-
-> ⚠️ Sudah dinilai hari ini di Pos 1 — tidak perlu dinilai lagi, kehadirannya tetap 1
-
-Anda tetap **boleh** melanjutkan, dan sebaiknya memang dilanjutkan **kalau ada
-yang berubah** — misalnya seragamnya lengkap saat di Pos 1 tapi ID-card-nya sudah
-dilepas ketika sampai Pos 3. Pelanggaran seperti itu tetap perlu tercatat.
-
-> ⚠️ **Peringatan ini hanya muncul kalau HP-nya sama.** Kalau tiap pos memakai HP
-> sendiri, HP di Pos 2 tidak punya cara mengetahui apa yang sudah dicatat Pos 1.
-> Untuk sekarang, saling mengabari antar pos tetap perlu.
+**Kalau satu guide tidak sengaja dinilai dua kali di pos yang sama?**
+Aplikasi akan memberi tahu sebelum menyimpan: *"sudah dinilai di Pos 1 hari
+ini"*, dan Anda boleh memilih lanjut atau batal. Pilih **lanjut** kalau memang
+ingin memperbaiki penilaian yang salah pencet. Bagaimanapun pilihannya,
+**kehadirannya tetap dihitung 1, bukan 2** — jadi angka di tab
+`Rekap Kehadiran` tidak akan menggelembung.
 
 **Apakah data saya bisa dibaca orang lain kalau HP hilang?**
 Data di HP terenkripsi (AES-256). Namun tetap biasakan HP dinas dikunci dengan

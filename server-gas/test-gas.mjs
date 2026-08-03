@@ -323,7 +323,7 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
   const perPos = doc.getSheetByName('Rekap per Pos 2026-07');
   const headPos = perPos.getRange(2, 1, 1, 15).getValues()[0];
   cek('Tab per pos memisahkan Pos 1, 2, dan 3',
-    headPos[2] === 'P1 Diperiksa' && headPos[6] === 'P2 Diperiksa' && headPos[10] === 'P3 Diperiksa',
+    headPos[2] === 'P1 Hadir' && headPos[6] === 'P2 Hadir' && headPos[10] === 'P3 Hadir',
     headPos.slice(2, 4).join(' | '));
 
   const barisPos = perPos.getRange(3, 1, 2, 15).getValues();
@@ -379,18 +379,19 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     cek('Tab kehadiran memakai satu kolom per tanggal',
       headHadir[0] === 'NAME' && headHadir[1] === 'REGU' &&
       headHadir[2] === '3-7' && headHadir[3] === '4-7' &&
-      headHadir[4] === 'TOTAL HARI HADIR',
+      headHadir[4] === 'TOTAL POS' && headHadir[5] === 'HARI HADIR',
       headHadir.join(' | '));
 
     // Gusti Alit Astawa (G-001) ada di baris 5 — nama paling awal secara abjad
     const bH = kh.getRange(5, 1, 1, 6).getValues()[0];
-    cek('Diperiksa 2x di pos sama + 1x di pos lain tetap kehadiran 1',
-      bH[0] === 'Gusti Alit Astawa' && bH[2] === 1,
-      `tanggal 3: pos 1 dinilai 2x + pos 2 sekali -> kehadiran ${bH[2]} (harus 1)`);
-    cek('Tiga pos berbeda pada hari yang sama juga tetap kehadiran 1',
-      bH[3] === 1, `tanggal 4: ${bH[3]}`);
-    cek('TOTAL HARI HADIR memakai rumus yang tetap hidup',
-      String(bH[4]).indexOf('=SUM(C5:D5)') === 0, String(bH[4]));
+    cek('Dua penilaian di pos yang SAMA pada hari yang sama dihitung 1',
+      bH[0] === 'Gusti Alit Astawa' && bH[2] === 2,
+      `tanggal 3: pos 1 dinilai 2x + pos 2 sekali -> kehadiran ${bH[2]} (harus 2)`);
+    cek('Tiga pos berbeda pada hari yang sama dihitung 3', bH[3] === 3, `tanggal 4: ${bH[3]}`);
+    cek('TOTAL POS & HARI HADIR memakai rumus yang tetap hidup',
+      String(bH[4]).indexOf('=SUM(C5:D5)') === 0 &&
+      String(bH[5]).indexOf('=COUNTIF(C5:D5,">0")') === 0,
+      `${bH[4]} / ${bH[5]}`);
 
     const kosong = kh.getRange(6, 1, 1, 4).getValues()[0];
     cek('Guide yang tidak pernah hadir tetap tercantum dengan sel kosong',
@@ -400,13 +401,18 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     // Baris penutup — dibaca MENURUN: hari itu berapa guide yang hadir
     const barisAkhir = 4 + 296;                    // 296 guide aktif
     const fJml = kh.getRange(barisAkhir + 2, 1, 1, 6).getValues()[0];
+    const fPos = kh.getRange(barisAkhir + 3, 1, 1, 6).getValues()[0];
     cek('Ada baris "JUMLAH GUIDE HADIR" di bawah tabel',
-      fJml[0] === 'JUMLAH GUIDE HADIR', fJml[0]);
+      fJml[0] === 'JUMLAH GUIDE HADIR' && fPos[0] === 'TOTAL KEHADIRAN POS',
+      `${fJml[0]} / ${fPos[0]}`);
     cek('Jumlah guide hadir per tanggal memakai COUNTIF sepanjang kolomnya',
       fJml[2] === `=COUNTIF(C5:C${barisAkhir},">0")` &&
       fJml[3] === `=COUNTIF(D5:D${barisAkhir},">0")`, fJml[2]);
+    cek('Total kehadiran pos per tanggal memakai SUM',
+      fPos[2] === `=SUM(C5:C${barisAkhir})`, fPos[2]);
     cek('Kolom penutup menghitung guide berbeda sebulan, bukan menjumlah harian',
-      String(fJml[4]).indexOf('=COUNTIF(E5:E') === 0, String(fJml[4]));
+      String(fJml[4]).indexOf('=COUNTIF(E5:E') === 0 &&
+      String(fPos[4]).indexOf('=SUM(E5:E') === 0, `${fJml[4]} / ${fPos[4]}`);
 
     // Nilai rumusnya diperiksa juga secara terpisah, karena inilah angka yang
     // menjawab "hari itu berapa guide yang hadir".
@@ -417,19 +423,19 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     // Rincian per pos ikut memakai aturan yang sama
     const pp = doc.getSheetByName('Rekap per Pos 2026-07');
     const headPP = pp.getRange(2, 1, 1, 15).getValues()[0];
-    cek('Tab per pos memakai istilah Diperiksa, karena kehadiran kini 1 per hari',
-      headPP[2] === 'P1 Diperiksa' && headPP[14] === 'Total Diperiksa', headPP[2] + ' | ' + headPP[14]);
+    cek('Tab per pos memakai istilah Hadir, bukan Dinilai',
+      headPP[2] === 'P1 Hadir' && headPP[14] === 'Total Kehadiran', headPP[2] + ' | ' + headPP[14]);
     const barisPP = pp.getRange(3, 1, 3, 15).getValues()
       .find(b => b[0] === 'Gusti Alit Astawa');
-    cek('P1 Diperiksa menghitung HARI, bukan jumlah penilaian',
+    cek('P1 Hadir menghitung HARI, bukan jumlah penilaian',
       barisPP && barisPP[2] === 2,
       barisPP ? `P1=${barisPP[2]} (tgl 3 dinilai 2x + tgl 4 sekali -> 2 hari)` : 'tidak ketemu');
     cek('Nilai per pos ikut digabung dulu per hari (yang terburuk)',
       barisPP && barisPP[3] === 1 && barisPP[4] === 2,
       barisPP ? `P1 Uniform=${barisPP[3]} (tgl 3 -> 0, tgl 4 -> 1) ID=${barisPP[4]}` : '-');
-    cek('Total pemeriksaan sebulan benar',
+    cek('Total kehadiran sebulan benar',
       barisPP && barisPP[14] === 5,
-      barisPP ? `${barisPP[14]} pemeriksaan (tgl 3: 2 pos, tgl 4: 3 pos)` : '-');
+      barisPP ? `${barisPP[14]} (tgl 3: 2 pos, tgl 4: 3 pos)` : '-');
 
     ev.data = simpan;
   }

@@ -352,9 +352,9 @@ flowchart TD
     E -->|Ya| F["Baca tab Guides → daftar anggota tiap regu"]
     F --> G["Baca tab Evaluations → saring bulan itu saja"]
 
-    G --> GA["Gabungkan dulu per<br/>guide + POS + tanggal<br/>(dasar rincian per pos)"]
+    G --> GA["Gabungkan dulu per<br/>guide + POS + tanggal<br/><b>satu pos bernilai satu</b>"]
     GA --> H["Gabungkan lagi lintas pos,<br/>per guide per tanggal"]
-    GA --> GB["Kehadiran harian = 0 atau 1<br/><b>satu hari bernilai satu</b>"]
+    GA --> GB["Kehadiran harian =<br/>jumlah pos berbeda, 0..3"]
     H --> H1["UNI FORM: ambil yang PALING BURUK"]
     H --> H2["ID: ambil yang PALING BURUK"]
     H --> H3["REVIEW: ambil yang TERTINGGI"]
@@ -362,7 +362,7 @@ flowchart TD
     H1 --> I["Susun 4 tab regu:<br/>Rekap A1, A2, D1, D2"]
     H2 --> I
     H3 --> I
-    GB --> IK["Susun tab Rekap Kehadiran:<br/>kolom = tanggal, isi = 1 bila hadir"]
+    GB --> IK["Susun tab Rekap Kehadiran:<br/>kolom = tanggal, isi = 0..3"]
     IK --> M
     I --> J["Lepas sel gabungan sisa susunan kemarin"]
     J --> K["Tulis judul, tanggal, nama,<br/>nilai harian, dan rumus TOTAL"]
@@ -389,14 +389,10 @@ Sebaliknya REVIEW diambil yang tertinggi supaya review yang tercatat di salah
 satu pos tidak terhapus.
 
 **Kenapa digabung dua tingkat?** Penggabungan pertama — per guide **per pos**
-per tanggal — menghasilkan kolom `Pn Diperiksa` yang menghitung **hari**, bukan
-jumlah penilaian. Penggabungan kedua, lintas pos, menghasilkan nilai harian
-untuk tab regu sekaligus angka kehadiran.
-
-**Kehadiran bernilai 0 atau 1.** Guide yang melewati tiga pos pada hari yang
-sama tetap dihitung hadir satu kali — jalur jalannya saja yang berbeda, bukan
-kepatuhannya. Pos mana saja yang memeriksanya tetap terlihat di tab
-`Rekap per Pos`.
+per tanggal — memastikan pemeriksaan berulang di pos yang sama tidak dihitung
+dua kali. Dari situ lahir angka kehadiran (0–3) sekaligus kolom `Pn Hadir` yang
+menghitung **hari**, bukan jumlah penilaian. Penggabungan kedua, lintas pos,
+baru menghasilkan nilai harian untuk tab regu.
 
 ---
 
