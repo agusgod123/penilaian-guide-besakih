@@ -1099,7 +1099,17 @@ function bangunRekapKehadiran_(bulan, ringkasan, guides) {
       fPos.push('=SUM(' + hTotal + '5:' + hTotal + barisAkhir + ')', '');
 
       var barisJml = barisAkhir + 2;
-      sh.getRange(barisJml, 1, 2, jmlKolom).setFormulas([fJml, fPos]);
+      // Label ditulis dengan setValues, RUMUS saja yang lewat setFormulas.
+      // setFormulas memperlakukan setiap sel sebagai rumus — teks biasa akan
+      // diberi "=" di depannya dan berubah menjadi #ERROR!.
+      sh.getRange(barisJml, 1, 2, 2).setValues([
+        [fJml[0], ''],
+        [fPos[0], '']
+      ]);
+      sh.getRange(barisJml, 3, 2, jmlKolom - 2).setFormulas([
+        fJml.slice(2),
+        fPos.slice(2)
+      ]);
       sh.getRange(barisJml, 1, 2, jmlKolom)
         .setFontWeight('bold').setBackground('#E7F3EC');
       sh.getRange(barisJml, 1, 2, 1).setHorizontalAlignment('left');

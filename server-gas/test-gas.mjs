@@ -50,7 +50,14 @@ class FakeSheet {
         return out;
       },
       setValue(v) { return this.setValues([[v]]); },
-      setFormulas(values) { return this.setValues(values); },
+      // Sheets memperlakukan SETIAP sel di setFormulas sebagai rumus: teks biasa
+      // diberi "=" di depannya lalu gagal dihitung. Ditiru di sini supaya
+      // penyalahgunaan setFormulas tertangkap tes, bukan baru ketahuan di
+      // spreadsheet sungguhan.
+      setFormulas(values) {
+        return this.setValues(values.map(baris => baris.map(v =>
+          (v === '' || String(v).charAt(0) === '=') ? v : '#ERROR!')));
+      },
       merge() { sh.merges.push({ row, col, numRows, numCols }); return this; },
       breakApart() {
         sh.merges = sh.merges.filter(m =>
@@ -417,6 +424,21 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
 
     // Nilai rumusnya diperiksa juga secara terpisah, karena inilah angka yang
     // menjawab "hari itu berapa guide yang hadir".
+    // Penjaga menyeluruh: label teks yang tidak sengaja ditulis lewat
+    // setFormulas akan berubah menjadi #ERROR! di spreadsheet sungguhan.
+    {
+      const bermasalah = [];
+      ['Rekap Kehadiran 2026-07', 'Rekap A1 2026-07', 'Rekap per Pos 2026-07'].forEach(n => {
+        const t = doc.getSheetByName(n);
+        if (!t) return;
+        t.data.forEach((baris, r) => (baris || []).forEach((v, c) => {
+          if (String(v) === '#ERROR!') bermasalah.push(`${n} baris ${r + 1} kolom ${c + 1}`);
+        }));
+      });
+      cek('Tidak ada sel #ERROR! di tab rekap mana pun',
+        bermasalah.length === 0, bermasalah.slice(0, 3).join('; ') || 'bersih');
+    }
+
     cek('Rumus JUMLAH GUIDE HADIR menjangkau seluruh baris guide, bukan sebagian',
       fJml[2].includes('C5:C' + barisAkhir) && barisAkhir === 300,
       `C5:C${barisAkhir} untuk 296 guide`);
