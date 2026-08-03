@@ -15,12 +15,19 @@ AC-1…AC-8 dipertahankan agar rujukan di dalam kode tetap sahih).
 
 ## Dokumentasi
 
+Penunjuk arahnya ada di **[`docs/README.md`](docs/README.md)** — buka itu dulu
+kalau bingung harus baca yang mana.
+
 | Berkas | Untuk siapa | Isinya |
 | --- | --- | --- |
 | [`docs/PANDUAN-PEMAKAIAN.md`](docs/PANDUAN-PEMAKAIAN.md) | **Staff & admin** | Panduan langkah demi langkah dengan bahasa sederhana — memasang aplikasi, menilai guide, melihat data di aplikasi maupun di spreadsheet, dan penanganan masalah |
-| [`docs/PRD-APLIKASI.md`](docs/PRD-APLIKASI.md) | Pengembang | Spesifikasi lengkap untuk membangun ulang dari nol: kebutuhan fungsional, model data, kontrak API, 20 kriteria penerimaan, risiko, dan alasan tiap keputusan desain |
+| [`docs/PRD-APLIKASI.md`](docs/PRD-APLIKASI.md) | Pengembang | Spesifikasi lengkap untuk membangun ulang dari nol: kebutuhan fungsional, model data, kontrak API, 23 kriteria penerimaan, risiko, dan alasan tiap keputusan desain |
 | [`docs/ALUR-APLIKASI.md`](docs/ALUR-APLIKASI.md) | Pengembang | 13 diagram alur: arsitektur, sinkronisasi, sisi server, penyusunan rekap, penyimpanan, service worker |
-| [`docs/RENCANA-BACKEND-GOOGLE-SHEETS.md`](docs/RENCANA-BACKEND-GOOGLE-SHEETS.md) | Pengembang | Rancangan backend spreadsheet beserta batasannya |
+
+> [`docs/RENCANA-BACKEND-GOOGLE-SHEETS.md`](docs/RENCANA-BACKEND-GOOGLE-SHEETS.md)
+> adalah **arsip rancangan awal** dan sudah tidak sesuai dengan kode — masih
+> memakai kriteria `etika` yang kini bernama `review`. Disimpan hanya sebagai
+> catatan alasan pemilihan backend.
 
 ### Versi PDF (untuk dicetak atau dibagikan)
 

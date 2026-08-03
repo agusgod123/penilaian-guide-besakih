@@ -1,7 +1,27 @@
 # Rencana: Google Spreadsheet sebagai Backend
 
-Dokumen rancangan — **belum diterapkan ke kode**. Baca dulu, terutama bagian
-[Batasan & risiko](#5-batasan--risiko-baca-ini-dulu).
+> ## ⚠️ ARSIP — JANGAN DIPAKAI SEBAGAI ACUAN
+>
+> Dokumen ini adalah **rancangan awal** dari sebelum backend dibangun.
+> Rencananya sudah **terlaksana dan berjalan di lapangan**, lalu berkembang
+> jauh, sehingga isinya kini **tidak lagi cocok dengan kode yang sebenarnya**.
+>
+> Perbedaan yang paling menyesatkan:
+>
+> | Di dokumen ini | Kenyataan sekarang |
+> | --- | --- |
+> | Kriteria ketiga bernama `etika`, bernilai TRUE/FALSE | Bernama **`review`**, berupa angka 0–20 |
+> | Urutan kolom `F idCard, G uniform` | **`F uniform, G idCard`**, mengikuti berkas NILAI REWARD |
+> | Rekap disusun manual | Otomatis tiap **5 menit** oleh trigger |
+> | Tidak ada hitungan kehadiran | Ada tab **`Rekap Kehadiran`**, satu pos bernilai satu |
+> | "belum diterapkan ke kode" | Sudah diterapkan, di-deploy, dan dipakai |
+>
+> **Acuan yang benar:** [`PRD-APLIKASI.md`](PRD-APLIKASI.md) untuk spesifikasi,
+> [`ALUR-APLIKASI.md`](ALUR-APLIKASI.md) untuk alur kerja, dan berkas
+> `server-gas/Code.gs` untuk kode yang sungguh berjalan.
+>
+> Dokumen ini disimpan hanya sebagai catatan **kenapa** spreadsheet dipilih
+> menjadi backend beserta batasan yang sudah disadari sejak awal.
 
 ---
 
