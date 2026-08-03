@@ -641,12 +641,26 @@ Bisa, dan itu wajar karena satu guide melewati beberapa pos. Rekap
 menggabungkannya: UNI FORM & ID diambil yang paling buruk, REVIEW yang
 tertinggi. Rinciannya tetap ada di tab `Rekap per Pos`.
 
-**Kalau satu guide tidak sengaja dinilai dua kali di pos yang sama?**
-Aplikasi akan memberi tahu sebelum menyimpan: *"sudah dinilai di Pos 1 hari
-ini"*, dan Anda boleh memilih lanjut atau batal. Pilih **lanjut** kalau memang
-ingin memperbaiki penilaian yang salah pencet. Bagaimanapun pilihannya,
-**kehadirannya tetap dihitung 1, bukan 2** — jadi angka di tab
-`Rekap Kehadiran` tidak akan menggelembung.
+**Kalau guide yang sama dinilai dua kali di pos yang sama?**
+**Tidak bisa.** Satu pos hanya menilai satu kali per hari untuk tiap guide.
+Begitu namanya dipilih, aplikasi langsung memberi tahu:
+
+> 🚫 I Kadek Korya sudah dinilai di Pos 1 pukul 09.15 — Uniform Ya, ID Ya,
+> Review 2. Satu pos menilai satu kali sehari. Guide ini masih bisa dinilai di
+> pos lain.
+
+**Pos lain tetap boleh menilai guide itu.** Guide yang lewat Pos 1, Pos 2, dan
+Pos 3 akan tercatat hadir **3**.
+
+Aturan ini ditegakkan di **server**, bukan cuma di HP. Jadi walaupun Pos 1 dan
+Pos 2 memakai HP berbeda, penilaian kedua untuk pos yang sama tetap ditolak.
+Kalau penolakan terjadi setelah data terkirim, alasannya muncul di layar
+**Riwayat** pada entri yang bersangkutan.
+
+**Bagaimana kalau salah pencet?**
+Penilaian yang sudah masuk tidak bisa diperbaiki dari aplikasi — sifatnya
+tambah-saja. Hubungi admin untuk memperbaiki barisnya langsung di tab
+`Evaluations`.
 
 **Apakah data saya bisa dibaca orang lain kalau HP hilang?**
 Data di HP terenkripsi (AES-256). Namun tetap biasakan HP dinas dikunci dengan

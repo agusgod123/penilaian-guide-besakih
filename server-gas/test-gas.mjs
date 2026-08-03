@@ -236,7 +236,8 @@ r = J(doPost({ postData: { contents: JSON.stringify({
 cek('Batch beberapa entri sekaligus',
   r.accepted.length === 2 && doc.getSheetByName('Evaluations').getLastRow() === 4);
 
-r = post({ ...contoh('uuid-4'), pos: '2' });
+// Guide lain, karena G-001 pos 2 hari ini sudah dipakai uuid-2
+r = post({ ...contoh('uuid-4'), guideId: 'G-002', guideName: 'I Gede Astawa', pos: '2' });
 cek('pos berupa teks "2" tetap diterima sebagai angka',
   r.accepted.length === 1 &&
   doc.getSheetByName('Evaluations').getRange(5, 3, 1, 1).getValues()[0][0] === 2);
@@ -530,7 +531,7 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
   // Batas wajar
   const batas = J(doPost({ postData: { contents: JSON.stringify({
     evaluationId: 'auto-4', guideId: 'G-002', guideName: 'I Gede Astawa', pos: 2,
-    timestamp: '2026-09-11T02:00:00.000Z',
+    timestamp: '2026-09-12T02:00:00.000Z',
     criteria: { idCard: true, uniform: true, review: 9999 }, catatan: 'x'.repeat(2000),
   }) } }));
   const barisBatas = ev.getRange(ev.getLastRow(), 1, 1, 10).getValues()[0];
@@ -538,12 +539,74 @@ cek('health menghitung jumlah baris dengan benar', totalAkhir === 4, `total ${to
     batas.accepted.length === 1 && barisBatas[7] === 20 && barisBatas[8].length === 500,
     `review=${barisBatas[7]} panjang catatan=${barisBatas[8].length}`);
 
+  /* ---- Satu pos hanya menilai satu kali per hari ---- */
+  {
+    ev.data = [ev.data[0]];
+    const kirim = (id, gid, pos, iso) => J(doPost({ postData: { contents: JSON.stringify({
+      evaluationId: id, guideId: gid, guideName: 'x', pos,
+      timestamp: iso, criteria: { idCard: true, uniform: true, review: 1 },
+    }) } }));
+
+    const p1 = kirim('sp-1', 'G-001', 1, '2026-10-05T02:00:00.000Z');
+    cek('Penilaian pertama di sebuah pos diterima', p1.accepted.length === 1);
+
+    // Perangkat LAIN mengirim penilaian baru untuk guide & pos yang sama
+    const p1b = kirim('sp-2', 'G-001', 1, '2026-10-05T06:00:00.000Z');
+    cek('Perangkat lain TIDAK bisa menilai guide yang sama di pos yang sama',
+      p1b.accepted.length === 0 && p1b.rejected.length === 1 &&
+      p1b.rejected[0].sudahDinilai === true,
+      p1b.rejected[0] ? p1b.rejected[0].errors[0] : '-');
+    cek('Barisnya benar-benar tidak ikut tertulis', ev.getLastRow() === 2);
+
+    // Pos BERBEDA harus tetap boleh
+    const p2 = kirim('sp-3', 'G-001', 2, '2026-10-05T07:00:00.000Z');
+    const p3 = kirim('sp-4', 'G-001', 3, '2026-10-05T08:00:00.000Z');
+    cek('Pos berbeda pada hari yang sama tetap boleh menilai',
+      p2.accepted.length === 1 && p3.accepted.length === 1 && ev.getLastRow() === 4);
+
+    // Hari berikutnya, pos yang sama boleh lagi
+    const besok = kirim('sp-5', 'G-001', 1, '2026-10-06T02:00:00.000Z');
+    cek('Hari berikutnya pos yang sama boleh menilai lagi', besok.accepted.length === 1);
+
+    // Kiriman ulang evaluationId yang SAMA tetap dianggap sudah tersimpan,
+    // bukan ditolak — kalau tidak, antrean aplikasi akan macet selamanya.
+    const ulang = kirim('sp-1', 'G-001', 1, '2026-10-05T02:00:00.000Z');
+    cek('Kirim ulang evaluationId yang sama tetap "sudah tersimpan", bukan ditolak',
+      ulang.accepted.length === 1 && ulang.accepted[0].duplicate === true &&
+      ulang.rejected.length === 0);
+
+    // Penggandaan di dalam satu kiriman borongan juga harus tertangkap
+    const borong = J(doPost({ postData: { contents: JSON.stringify({ evaluations: [
+      { evaluationId: 'sp-6', guideId: 'G-002', guideName: 'x', pos: 2,
+        timestamp: '2026-10-07T02:00:00.000Z', criteria: { idCard: true, uniform: true, review: 0 } },
+      { evaluationId: 'sp-7', guideId: 'G-002', guideName: 'x', pos: 2,
+        timestamp: '2026-10-07T05:00:00.000Z', criteria: { idCard: true, uniform: true, review: 0 } },
+    ] }) } }));
+    cek('Dua entri untuk pos yang sama dalam satu kiriman: satu diterima, satu ditolak',
+      borong.accepted.length === 1 && borong.rejected.length === 1,
+      `${borong.accepted.length} diterima, ${borong.rejected.length} ditolak`);
+
+    // Kehadiran tetap 0..3 — pos berbeda tetap menambah
+    sandbox.bangunRekap('2026-10');
+    const khOkt = doc.getSheetByName('Rekap Kehadiran 2026-10');
+    const bOkt = khOkt.getRange(5, 1, 1, 5).getValues()[0];
+    cek('Kehadiran tetap dihitung per pos: 3 pos berbeda = 3',
+      bOkt[0] === 'Gusti Alit Astawa' && bOkt[2] === 3,
+      `5 Okt: ${bOkt[2]} (pos 1, 2, 3)`);
+
+    ev.data = [ev.data[0]];
+    props.clear();
+  }
+
   const borongan = J(doPost({ postData: { contents: JSON.stringify({
     evaluations: Array.from({ length: 201 }, (_, i) => ({
       evaluationId: 'b' + i, guideId: 'G-001', guideName: 'Gusti Alit Astawa', pos: 1,
       timestamp: '2026-09-11T02:00:00.000Z', criteria: { idCard: true, uniform: true, review: 0 },
     })) }) } }));
-  cek('Kiriman borongan berlebihan ditolak', borongan.accepted.length === 0);
+  cek('Kiriman borongan berlebihan ditolak karena batas jumlah, bukan aturan pos',
+    borongan.accepted.length === 0 &&
+    String(borongan.rejected[0].errors).indexOf('maksimal') > -1,
+    String(borongan.rejected[0].errors));
 
   props.clear();
   ev.data = [ev.data[0]];

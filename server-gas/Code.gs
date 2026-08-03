@@ -576,10 +576,17 @@ function doPost(e) {
   try {
     var sh = sheet_(SHEET_EVAL);
     var last = sh.getLastRow();
-    var idAda = {};
+    var idAda = {}, posAda = {};
     if (last > 1) {
-      var kol = sh.getRange(2, 1, last - 1, 1).getValues();
-      for (var i = 0; i < kol.length; i++) idAda[String(kol[i][0])] = true;
+      // Kolom A..D: evaluationId, timestamp, pos, guideId
+      var kol = sh.getRange(2, 1, last - 1, 4).getValues();
+      for (var i = 0; i < kol.length; i++) {
+        idAda[String(kol[i][0])] = true;
+        var w = new Date(kol[i][1]);
+        if (!isNaN(w.getTime())) {
+          posAda[kunciPos_(String(kol[i][3]), kol[i][2], kodeTanggal_(w))] = true;
+        }
+      }
     }
 
     // Nama guide diambil dari tab Guides, bukan dari kiriman aplikasi: kalau
@@ -600,6 +607,25 @@ function doPost(e) {
         continue;
       }
       var gid = String(it.guideId).trim();
+
+      // SATU POS HANYA MENILAI SATU KALI PER HARI.
+      // Pemeriksaannya di sini, bukan di aplikasi: hanya server yang memegang
+      // data seluruh pos. Perangkat di Pos 1 tidak mungkin tahu apa yang sudah
+      // dicatat perangkat lain — jadi kalau aturan ini ditegakkan di aplikasi,
+      // penilaian ganda antar perangkat akan lolos begitu saja.
+      // Pos LAIN tetap boleh menilai guide yang sama pada hari yang sama.
+      var tglIt = kodeTanggal_(new Date(it.timestamp));
+      var kunci = kunciPos_(gid, it.pos, tglIt);
+      if (posAda[kunci]) {
+        rejected.push({
+          evaluationId: it.evaluationId,
+          errors: [(namaResmi[gid] || gid) + ' sudah dinilai di Pos ' + Number(it.pos) +
+                   ' pada ' + tglIt + ' — satu pos hanya menilai satu kali per hari'],
+          sudahDinilai: true
+        });
+        continue;
+      }
+      posAda[kunci] = true;      // cegah juga penggandaan di dalam satu kiriman
       baris.push([
         String(it.evaluationId),
         String(it.timestamp),
@@ -671,6 +697,11 @@ function validasi_(it, namaResmi) {
  * penilaian atas guide yang baru dinonaktifkan tetap bisa masuk).
  * Disimpan sebentar di cache agar tidak dibaca ulang tiap kiriman.
  */
+/** Kunci "satu pos satu kali sehari": guideId + pos + tanggal setempat. */
+function kunciPos_(guideId, pos, tgl) {
+  return String(guideId).trim() + '|' + (Number(pos) || 0) + '|' + tgl;
+}
+
 function petaGuides_() {
   var cache = null;
   try { cache = CacheService.getScriptCache(); } catch (e) {}

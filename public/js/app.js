@@ -326,8 +326,8 @@
     catch { return; }
     // Guide sudah diganti selagi menunggu — jangan timpa keterangannya
     if (!kembar || el.dataset.guideId !== g.guideId) return;
-    el.innerHTML += `<br><small>⚠️ Sudah dinilai di Pos ${pos} hari ini — ` +
-                    `kehadiran tetap dihitung 1</small>`;
+    el.innerHTML += `<br><small>🚫 Sudah dinilai di Pos ${pos} hari ini — ` +
+                    `tidak bisa dinilai lagi di pos ini. Pos lain masih bisa.</small>`;
   }
 
   /** Tawarkan nama-nama yang mungkin dimaksud saat ketikan masih ambigu. */
@@ -359,20 +359,25 @@
 
     const pos = Number($('#posSelect').value);
 
-    // Satu pos hanya bernilai satu kehadiran per hari. Penilaian kedua di pos
-    // yang sama tidak menambah apa pun di rekap — tapi tetap diizinkan, karena
-    // kadang memang dimaksudkan sebagai koreksi dari yang pertama.
+    // Satu pos hanya menilai satu kali per hari. Server menolak kiriman kedua,
+    // jadi menahannya di sini bukan sekadar peringatan — melainkan mencegah
+    // staff mengisi formulir yang sudah pasti ditolak nanti.
+    // Pos LAIN tetap boleh menilai guide yang sama pada hari yang sama.
     const kembar = await DB.penilaianKembar(g.guideId, pos, new Date().toISOString());
     if (kembar) {
       const c = kembar.criteria || {};
-      const lanjut = confirm(
-        `${g.guideName} sudah dinilai di Pos ${pos} hari ini ` +
-        `(pukul ${fmtTime(kembar.timestamp).split(' ').pop()}, ` +
-        `Uniform ${c.uniform ? 'Ya' : 'Tidak'}, ID ${c.idCard ? 'Ya' : 'Tidak'}, ` +
-        `Review ${Number(c.review) || 0}).\n\n` +
-        `Kehadirannya tetap dihitung 1, bukan 2.\n\n` +
-        `Lanjutkan menyimpan sebagai koreksi?`);
-      if (!lanjut) { toast('Penilaian dibatalkan', 'warn', '↩️'); return; }
+      toast(`${g.guideName} sudah dinilai di Pos ${pos} hari ini`, 'warn', '🚫');
+      const el = $('#guideAmbigu');
+      if (el) {
+        el.innerHTML =
+          `🚫 <strong>${esc(g.guideName)}</strong> sudah dinilai di Pos ${pos} ` +
+          `pukul ${esc(fmtTime(kembar.timestamp).split(' ').pop())} — ` +
+          `Uniform ${c.uniform ? 'Ya' : 'Tidak'}, ID ${c.idCard ? 'Ya' : 'Tidak'}, ` +
+          `Review ${Number(c.review) || 0}.<br>` +
+          `Satu pos menilai satu kali sehari. Guide ini masih bisa dinilai di pos lain.`;
+        el.hidden = false;
+      }
+      return;
     }
 
     const evaluation = {

@@ -552,8 +552,10 @@ check('Pengiriman ulang tidak menggandakan data di server (append-only)', before
   } });
   r = await window.Sync.syncNow({ force: true });
   const ditandai = (await window.DB.all()).find(e => e.evaluationId === idTolak);
-  check('Data ditolak Apps Script ditandai gagal, bukan diulang terus',
-    r.failed === 1 && !!ditandai.lastError && ditandai.lastError.indexOf('Ditolak server') === 0,
+  // Alasan penolakan ditampilkan apa adanya — teks inilah yang dibaca staff di
+  // layar Riwayat, jadi tidak boleh berupa JSON mentah.
+  check('Alasan penolakan server terbaca manusia, bukan JSON mentah',
+    r.failed === 1 && ditandai.lastError === 'pos harus 1, 2, atau 3',
     ditandai.lastError || '');
 
   window.fetch = asli;
@@ -608,10 +610,26 @@ check('Pengiriman ulang tidak menggandakan data di server (append-only)', before
   check('Hari berbeda tidak dianggap kembar',
     (await window.DB.penilaianKembar(gid, POS, '2020-01-01T02:00:00.000Z')) === null);
 
-  // Penilaian kedua di pos yang sama tetap boleh disimpan sebagai koreksi
-  // (window.confirm sudah di-stub menjadi "ya" di bagian penyiapan).
+  // Penilaian kedua di POS YANG SAMA harus DITAHAN — satu pos menilai satu kali
+  // sehari, dan server pasti menolaknya, jadi tidak ada gunanya diteruskan.
   await simpanPenilaian();
-  check('Penilaian ulang tetap boleh disimpan sebagai koreksi',
+  check('Penilaian ulang di pos yang sama DITAHAN aplikasi',
+    (await window.DB.counts()).total === sesudahSatu,
+    `${sesudahSatu} -> ${(await window.DB.counts()).total}`);
+  check('Alasannya diterangkan, bukan sekadar gagal diam-diam',
+    !$('#guideAmbigu').hidden && $('#guideAmbigu').textContent.includes('sudah dinilai di Pos'),
+    $('#guideAmbigu').textContent.slice(0, 70));
+
+  // ...tetapi POS LAIN tetap boleh menilai guide yang sama pada hari yang sama
+  click($('#btnNewEval')); await sleep(50);
+  setVal($('#posSelect'), String(POS === 3 ? 1 : 3));
+  $('#posSelect').dispatchEvent(new window.Event('change', { bubbles: true }));
+  setVal($('#guideInput'), NAMA);
+  click($('[data-crit=idCard] .seg.yes'));
+  click($('[data-crit=uniform] .seg.yes'));
+  $('#formEval').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+  await sleep(400);
+  check('Pos LAIN tetap boleh menilai guide yang sama pada hari yang sama',
     (await window.DB.counts()).total === sesudahSatu + 1,
     `${sesudahSatu} -> ${(await window.DB.counts()).total}`);
 
@@ -626,11 +644,10 @@ check('Pengiriman ulang tidak menggandakan data di server (append-only)', before
   const barisRinci = csvKembar.slice(batas).split('\r\n')
     .filter(b => b.includes(NAMA) && /^\d{4}-\d{2}-\d{2};/.test(b));
   const kolom = (barisRekap[0] || '').split(';');
-  check('Dua penilaian di pos yang sama tetap KEHADIRAN 1',
-    barisRekap.length === 1 && barisRinci.length === 2 &&
-    kolom[7] === '1' && kolom[9] === '2',
+  check('Dua pos berbeda pada hari yang sama = KEHADIRAN 2',
+    barisRekap.length === 1 && barisRinci.length === 2 && kolom[7] === '2',
     barisRekap[0]
-      ? `${barisRinci.length} baris rincian -> kehadiran ${kolom[7]}, jumlah penilaian ${kolom[9]}`
+      ? `kehadiran ${kolom[7]} dari pos "${kolom[8]}", ${barisRinci.length} baris rincian`
       : 'baris rekap tidak ketemu');
 }
 

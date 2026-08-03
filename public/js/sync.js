@@ -177,9 +177,17 @@
         const ditolak = body && Array.isArray(body.rejected)
           && body.rejected.some(r => !r.evaluationId || r.evaluationId === item.evaluationId);
         if (res.status === 400 || (ditolak && !diterima_(body, item.evaluationId))) {
-          // Ditolak permanen (data tidak sah) — tandai gagal agar tidak diulang selamanya.
-          const alasan = body && body.rejected ? JSON.stringify(body.rejected) : ('HTTP ' + res.status);
-          await DB.markFailed(item.evaluationId, 'Ditolak server: ' + alasan);
+          // Ditolak permanen (data tidak sah, atau pos itu sudah menilai guide
+          // ini hari ini) — tandai gagal agar tidak diulang selamanya.
+          // Alasannya diambil apa adanya, bukan JSON mentah: teks inilah yang
+          // dibaca staff di layar Riwayat.
+          const r = (body && Array.isArray(body.rejected))
+            ? (body.rejected.find(x => x && x.evaluationId === item.evaluationId) || body.rejected[0])
+            : null;
+          const alasan = r && Array.isArray(r.errors) && r.errors.length
+            ? r.errors.join('; ')
+            : ('HTTP ' + res.status);
+          await DB.markFailed(item.evaluationId, alasan);
           failed++; continue;
         }
 

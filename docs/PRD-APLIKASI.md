@@ -496,8 +496,11 @@ karena kegunaan utamanya adalah untuk disandingkan.
 | F-11.3a.4 | Kolom `Pn Hadir` pada tab per pos menghitung **jumlah hari** guide itu diperiksa di pos n, bukan jumlah penilaian | W |
 | F-11.3a.5 | Tab `Rekap Kehadiran` memuat seluruh guide aktif; yang belum pernah hadir tetap tercantum dengan sel kosong | W |
 | F-11.3a.6 | Tersedia kolom `TOTAL POS` (jumlah kehadiran pos sebulan) dan `HARI HADIR` (jumlah hari hadir), keduanya berupa rumus | S |
-| F-11.3a.7 | Aplikasi **memperingatkan** bila guide yang sama akan dinilai lagi di pos yang sama pada hari yang sama, tetapi tetap mengizinkan — penilaian kedua kadang koreksi | W |
-| F-11.3a.8 | Peringatan itu memakai riwayat perangkat sendiri; deteksi lintas perangkat tidak dimungkinkan karena §5 melarang endpoint pembacaan | S |
+| F-11.3a.7 | **Satu pos hanya menilai satu kali per hari untuk tiap guide.** Kiriman kedua dengan `(guideId, pos, tanggal)` yang sama **ditolak server**. Pos lain tetap boleh menilai guide itu pada hari yang sama | W |
+| F-11.3a.8 | Penolakan dilakukan **di server**, bukan di aplikasi — hanya server yang memegang data seluruh pos, sehingga aturan tetap berlaku walau tiap pos memakai perangkat berbeda | W |
+| F-11.3a.9 | Aplikasi ikut menahan kiriman yang sudah pasti ditolak, berdasarkan riwayat perangkatnya sendiri, agar staff tidak mengisi formulir sia-sia | S |
+| F-11.3a.10 | Kiriman ulang dengan `evaluationId` yang **sama** tetap dijawab `accepted duplicate`, bukan ditolak — kalau tidak, antrean aplikasi akan macet selamanya | W |
+| F-11.3a.11 | Alasan penolakan dikembalikan sebagai kalimat yang terbaca manusia dan ditampilkan pada entri di layar Riwayat | S |
 | F-11.3a.9 | Tab `Rekap Kehadiran` ditutup dua baris rumus per tanggal: **JUMLAH GUIDE HADIR** (`COUNTIF > 0`) dan **TOTAL KEHADIRAN POS** (`SUM`) | W |
 | F-11.3a.10 | Pada kolom TOTAL POS, baris JUMLAH GUIDE HADIR berarti jumlah guide **berbeda** sepanjang bulan — bukan penjumlahan angka harian | W |
 
@@ -718,7 +721,9 @@ Nomor AC-1…AC-8 dipertahankan dari versi 1.
 | **AC-20** | Guide dengan `aktif = FALSE` tidak muncul, datanya tetap utuh | Nonaktifkan satu guide |
 | **AC-21** | Dua penilaian di pos yang sama pada hari yang sama dihitung sebagai kehadiran **1** | Nilai satu guide dua kali di Pos 1, lihat tab Kehadiran |
 | **AC-22** | Tiga pos berbeda pada hari yang sama dihitung sebagai kehadiran **3** | Nilai satu guide di Pos 1, 2, dan 3 |
-| **AC-23** | Aplikasi memperingatkan penilaian ganda tetapi tetap mengizinkan | Nilai guide yang sama dua kali di pos yang sama |
+| **AC-23** | Penilaian kedua di pos yang sama pada hari yang sama **ditolak server**, walau dikirim dari perangkat berbeda | Kirim dua `evaluationId` berbeda untuk `(guide, pos, tanggal)` yang sama |
+| **AC-24** | Pos **lain** tetap boleh menilai guide yang sama pada hari yang sama | Kirim guide yang sama untuk Pos 2 dan Pos 3 |
+| **AC-25** | Kiriman ulang `evaluationId` yang sama tetap dianggap tersimpan, bukan ditolak | Kirim payload identik dua kali |
 | **AC-24** | Tab Kehadiran menjawab "hari itu berapa guide hadir" lewat dua baris penutup berumus | Lihat baris di bawah daftar guide |
 
 ---
